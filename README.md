@@ -43,6 +43,7 @@ Le workflow `.github/workflows/tonight.yml` tourne chaque jour vers 6h, 12h, 15h
 - **Moment** : Maintenant (en cours ou qui commence dans 30 min), 1re partie (vers 21h10), 2e partie (vers 22h50).
 - **Pour toi** : les programmes du moment classés selon tes goûts, avec une ligne de temps (avancement, temps restant ou « dans 12 min »).
 - **Chaînes** : toutes tes chaînes d'un coup, en **liste** (ce qui passe, progression, ce qui suit) ou en **grille horaire** (test). Recherche par titre, acteur ou équipe ; filtre par type ; tri « Mon ordre » ou « Pour toi » ; favoris et réorganisation des chaînes.
+- **Deux niveaux de chaînes** : les chaînes reçues (bouquets, ajouts, exclusions dans les réglages), puis les **favorites** (étoile). En haut de l'app, « Toutes mes chaînes » ou « Mes favorites » change ce que montrent Pour toi et Chaînes.
 - **Émissions suivies** : « Suivre cette émission » sur une fiche. Elle remonte dans les suggestions, et un bandeau rouge s'affiche en haut de l'app dès qu'elle est en cours (ou commence dans 15 min).
 - **Rappels** : « Me rappeler » sur un programme, ou « Me prévenir à chaque diffusion » sur une émission suivie. Message dans l'app + notification système si autorisée (réglage : 5, 10, 15 ou 30 min avant). « Ajouter à l'agenda » télécharge un fichier .ics avec alarme.
 - **Regarder en direct** : lien vers le site de la chaîne (TF1+, france.tv, M6+, arte.tv, myCANAL…), dans `src/links.ts`.

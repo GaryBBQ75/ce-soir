@@ -1,5 +1,5 @@
 import { BOUQUETS, type Bouquet, type Channel } from '../types';
-import { channelOn, topTraits, type Profile } from '../profile';
+import { channelReceived as channelOn, topTraits, type Profile } from '../profile';
 import { useState } from 'react';
 import { Sheet } from './Sheet';
 import { askPermission, notificationsSupported } from '../notify';

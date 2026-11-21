@@ -7,6 +7,7 @@ import { Settings } from './components/Settings';
 import { Poster } from './components/Poster';
 import { Progress } from './components/Progress';
 import { Channels } from './components/Channels';
+import { ChannelLogo } from './components/ChannelLogo';
 import { durationLabel, hhmm, isOn, loadTonight, refTime, stopOf, todayLabel, type When } from './utils';
 
 type Tab = 'pourtoi' | 'chaines';
@@ -80,6 +81,8 @@ export default function App() {
   const kindsTonight = KINDS.filter((k) => tonight?.films.some((f) => f.kind === k.id));
 
   const openFilm = tonight?.films.find((f) => f.id === openId) ?? null;
+  const channelById = useMemo(() => new Map((tonight?.channels ?? []).map((c) => [c.id, c])), [tonight]);
+  const favCount = Object.keys(profile.favorites).length;
 
   const signal = (f: Film, s: Signal) => {
     let p = applySignal(profile, f, s);
@@ -142,6 +145,26 @@ export default function App() {
         ))}
       </div>
 
+      <div className="scope" role="group" aria-label="Chaînes affichées">
+        <button aria-pressed={profile.scope === 'all'} className={profile.scope === 'all' ? 'is-on' : ''} onClick={() => update({ ...profile, scope: 'all' })}>
+          Toutes mes chaînes
+        </button>
+        <button
+          aria-pressed={profile.scope === 'favorites'}
+          className={profile.scope === 'favorites' ? 'is-on' : ''}
+          onClick={() => {
+            if (favCount === 0) {
+              setTab('chaines');
+              flash('Touche l\'étoile d\'une chaîne pour l\'ajouter à tes favorites');
+              return;
+            }
+            update({ ...profile, scope: 'favorites' });
+          }}
+        >
+          ★ Mes favorites{favCount ? ` · ${favCount}` : ''}
+        </button>
+      </div>
+
       {followedLive.length > 0 && (
         <div className="live-banner" role="status">
           {followedLive.slice(0, 3).map((f) => (
@@ -191,8 +214,9 @@ export default function App() {
                     <button className="card__main" onClick={() => open(film)}>
                       <Poster title={film.title} poster={film.poster} big className="card__poster" />
                       <span className="card__badge">
+                        <ChannelLogo channel={channelById.get(film.channelId)} fallback={film.channel} size="xs" />
                         {isOn(film, now) && <span className="live-dot" aria-hidden="true" />}
-                        {film.channel} · {hhmm(film.start)}
+                        {hhmm(film.start)}
                       </span>
                       <span className="card__body">
                         <span className={`card__reason ${discovery ? 'is-discovery' : ''}`}>{reason}</span>
@@ -224,7 +248,10 @@ export default function App() {
                     <div className="rail">
                       {list.map(({ film }) => (
                         <button key={film.id} className="mini" onClick={() => open(film)}>
-                          <Poster title={film.title} poster={film.poster} className="mini__poster" />
+                          <span className="mini__media">
+                            <Poster title={film.title} poster={film.poster} className="mini__poster" />
+                            <ChannelLogo channel={channelById.get(film.channelId)} fallback={film.channel} size="xs" className="mini__clogo" />
+                          </span>
                           <span className="mini__title">{film.title}</span>
                           <span className="muted small">{film.channel} · {hhmm(film.start)}</span>
                           <Progress film={film} now={now} />

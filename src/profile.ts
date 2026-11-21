@@ -15,8 +15,10 @@ export interface Profile {
   /** Chaînes ajoutées une par une, hors bouquet actif */
   added: Record<string, true>;
   hintDismissed: boolean;
-  /** Chaînes favorites, en tête de la grille */
+  /** Chaînes favorites : 2e niveau au-dessus des chaînes reçues */
   favorites: Record<string, true>;
+  /** Ce que l'app montre : toutes mes chaînes, ou seulement mes favorites */
+  scope: 'all' | 'favorites';
   weights: Record<string, number>;
   hidden: Record<string, true>;
   reminders: Record<string, true>;
@@ -46,6 +48,7 @@ export const emptyProfile = (): Profile => ({
   added: {},
   hintDismissed: false,
   favorites: {},
+  scope: 'all',
   weights: {},
   hidden: {},
   reminders: {},
@@ -161,7 +164,15 @@ function reasonFor(p: Profile, f: Film): string {
  * - trie par score
  * - glisse 1 film "découverte" dans le top (environ 1 sur 5), pour éviter la bulle
  */
+/** La chaîne est-elle reçue (bouquets + ajouts - exclusions) ? */
+export function channelReceived(p: Profile, channelId: string, bouquet: Bouquet) {
+  if (p.excluded[channelId]) return false;
+  return p.bouquets.includes(bouquet) || !!p.added[channelId];
+}
+
+/** La chaîne est-elle affichée (reçue, et favorite si on est en mode « favorites ») ? */
 export function channelOn(p: Profile, channelId: string, bouquet: Bouquet) {
+  if (p.scope === 'favorites' && Object.keys(p.favorites).length > 0 && !p.favorites[channelId]) return false;
   if (p.excluded[channelId]) return false;
   return p.bouquets.includes(bouquet) || !!p.added[channelId];
 }

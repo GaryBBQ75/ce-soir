@@ -1,7 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { KINDS, type Channel, type Film, type Kind } from '../types';
 import { channelOn, isFollowed, score, showKey, type Profile } from '../profile';
-import { assetUrl, hhmm, isOn, stopOf } from '../utils';
+import { hhmm, isOn, stopOf } from '../utils';
+import { ChannelLogo } from './ChannelLogo';
+import { Poster } from './Poster';
 import { Progress } from './Progress';
 import { Grid } from './Grid';
 
@@ -36,6 +38,20 @@ export function Channels({ profile, channels, films, at, now, onOpen, onChange }
   const [kind, setKind] = useState<Kind | 'all'>('all');
   const [query, setQuery] = useState('');
   const [reorder, setReorder] = useState(false);
+  // La grille occupe tout l'espace restant de l'écran : seule la grille défile
+  const gridWrap = useRef<HTMLDivElement>(null);
+  const [gridH, setGridH] = useState(480);
+  useLayoutEffect(() => {
+    if (view !== 'grid') return;
+    const fit = () => {
+      const top = gridWrap.current?.getBoundingClientRect().top ?? 300;
+      setGridH(Math.max(260, window.innerHeight - top - 84));
+    };
+    window.scrollTo(0, 0);
+    fit();
+    window.addEventListener('resize', fit);
+    return () => window.removeEventListener('resize', fit);
+  }, [view]);
 
   const byChannel = useMemo(() => {
     const m = new Map<string, Film[]>();
@@ -95,14 +111,17 @@ export function Channels({ profile, channels, films, at, now, onOpen, onChange }
     onChange({ ...profile, channelOrder: order });
   };
 
-  const logo = (c: Channel) => (
-    <span className={`channel__logo ${c.logoDark ? 'is-dark' : ''}`} aria-hidden="true">
-      {c.logo ? <img src={assetUrl(c.logo)} alt="" loading="lazy" /> : <span>{c.name.slice(0, 3)}</span>}
-    </span>
+  // Vignette : visuel du programme, avec le logo de la chaîne en petit dans le coin
+  const thumb = (c: Channel, f?: Film) => (
+    <button className="channel__thumb" onClick={() => f && onOpen(f)} tabIndex={-1} aria-hidden="true">
+      {f ? <Poster title={f.title} poster={f.poster} className="channel__poster" /> : <span className="channel__poster" />}
+      <ChannelLogo channel={c} fallback={c.name} size="xs" className="channel__clogo" />
+    </button>
   );
 
   return (
     <div className="stack">
+      {view === 'list' && (
       <label className="search">
         <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
           <circle cx="11" cy="11" r="7" />
@@ -111,6 +130,7 @@ export function Channels({ profile, channels, films, at, now, onOpen, onChange }
         <span className="sr-only">Rechercher</span>
         <input type="search" placeholder="Titre, acteur, équipe…" value={query} onChange={(e) => setQuery(e.target.value)} />
       </label>
+      )}
 
       {q.length >= 2 ? (
         <ul className="channels">
@@ -119,7 +139,7 @@ export function Channels({ profile, channels, films, at, now, onOpen, onChange }
             const c = channels.find((x) => x.id === f.channelId)!;
             return (
               <li key={f.id} className="channel">
-                {logo(c)}
+                {thumb(c, f)}
                 <button className="channel__body" onClick={() => onOpen(f)}>
                   <span className="channel__name">{c.name} · {hhmm(f.start)}</span>
                   <span className="channel__title">{f.title}</span>
@@ -154,7 +174,9 @@ export function Channels({ profile, channels, films, at, now, onOpen, onChange }
           </div>
 
           {view === 'grid' ? (
-            <Grid profile={profile} channels={ordered} films={films} at={at} now={now} kind={kind} onOpen={onOpen} />
+            <div ref={gridWrap}>
+              <Grid profile={profile} channels={ordered} films={films} at={at} now={now} kind={kind} height={gridH} onOpen={onOpen} />
+            </div>
           ) : (
             <>
               {sort === 'mine' && (
@@ -168,24 +190,13 @@ export function Channels({ profile, channels, films, at, now, onOpen, onChange }
                   const fav = !!profile.favorites[c.id];
                   return (
                     <li key={c.id} className="channel">
-                      {reorder ? (
+                      {reorder && (
                         <span className="channel__move">
                           <button aria-label={`Monter ${c.name}`} onClick={() => move(c.id, -1)}>↑</button>
                           <button aria-label={`Descendre ${c.name}`} onClick={() => move(c.id, 1)}>↓</button>
                         </span>
-                      ) : (
-                        <button
-                          className={`channel__fav ${fav ? 'is-on' : ''}`}
-                          aria-label={fav ? `Retirer ${c.name} des favoris` : `Ajouter ${c.name} aux favoris`}
-                          aria-pressed={fav}
-                          onClick={() => toggleFavorite(c.id)}
-                        >
-                          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill={fav ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
-                            <path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z" />
-                          </svg>
-                        </button>
                       )}
-                      {logo(c)}
+                      {thumb(c, current)}
                       {current ? (
                         <button className="channel__body" onClick={() => onOpen(current)}>
                           <span className="channel__name">{c.name}</span>
@@ -206,6 +217,18 @@ export function Channels({ profile, channels, films, at, now, onOpen, onChange }
                           <span className="channel__name">{c.name}</span>
                           <span className="muted small">Pas de programme connu</span>
                         </span>
+                      )}
+                      {!reorder && (
+                        <button
+                          className={`channel__fav ${fav ? 'is-on' : ''}`}
+                          aria-label={fav ? `Retirer ${c.name} des favorites` : `Ajouter ${c.name} aux favorites`}
+                          aria-pressed={fav}
+                          onClick={() => toggleFavorite(c.id)}
+                        >
+                          <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill={fav ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
+                            <path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z" />
+                          </svg>
+                        </button>
                       )}
                     </li>
                   );
