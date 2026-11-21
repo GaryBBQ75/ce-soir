@@ -391,5 +391,112 @@
    "synopsis": "Deux inconnus rencontrés dans un train passent une nuit à parler en arpentant Vienne.",
    "part": "seconde"
   }
+ ],
+ "channels": [
+  {
+   "id": "France2.fr",
+   "name": "France 2",
+   "bouquet": "tnt"
+  },
+  {
+   "id": "Arte.fr",
+   "name": "Arte",
+   "bouquet": "tnt"
+  },
+  {
+   "id": "M6.fr",
+   "name": "M6",
+   "bouquet": "tnt"
+  },
+  {
+   "id": "W9.fr",
+   "name": "W9",
+   "bouquet": "tnt"
+  },
+  {
+   "id": "France3.fr",
+   "name": "France 3",
+   "bouquet": "tnt"
+  },
+  {
+   "id": "6ter.fr",
+   "name": "6ter",
+   "bouquet": "tnt"
+  },
+  {
+   "id": "TMC.fr",
+   "name": "TMC",
+   "bouquet": "tnt"
+  },
+  {
+   "id": "CanalPlus.fr",
+   "name": "Canal+",
+   "bouquet": "canal"
+  },
+  {
+   "id": "CanalPlusCinema.fr",
+   "name": "Canal+ Cinéma(s)",
+   "bouquet": "canal"
+  },
+  {
+   "id": "CanalPlusGrandEcran.fr",
+   "name": "Canal+ Grand Écran",
+   "bouquet": "canal"
+  },
+  {
+   "id": "CanalPlusBoxOffice.fr",
+   "name": "Canal+ Box Office",
+   "bouquet": "canal"
+  },
+  {
+   "id": "CinePlusFrisson.fr",
+   "name": "Ciné+ Frisson",
+   "bouquet": "cinema"
+  },
+  {
+   "id": "CinePlusFamiz.fr",
+   "name": "Ciné+ Famiz",
+   "bouquet": "cinema"
+  },
+  {
+   "id": "CinePlusClassic.fr",
+   "name": "Ciné+ Classic",
+   "bouquet": "cinema"
+  },
+  {
+   "id": "CinePlusEmotion.fr",
+   "name": "Ciné+ Emotion",
+   "bouquet": "cinema"
+  },
+  {
+   "id": "TF1.fr",
+   "name": "TF1",
+   "bouquet": "tnt"
+  },
+  {
+   "id": "France5.fr",
+   "name": "France 5",
+   "bouquet": "tnt"
+  },
+  {
+   "id": "TFX.fr",
+   "name": "TFX",
+   "bouquet": "tnt"
+  },
+  {
+   "id": "RMCStory.fr",
+   "name": "RMC Story",
+   "bouquet": "tnt"
+  },
+  {
+   "id": "CanalPlusSport.fr",
+   "name": "Canal+ Sport",
+   "bouquet": "canal"
+  },
+  {
+   "id": "CinePlusFestival.fr",
+   "name": "Ciné+ Festival",
+   "bouquet": "cinema"
+  }
  ]
 }

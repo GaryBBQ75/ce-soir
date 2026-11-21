@@ -24,13 +24,21 @@ TMDB_API_KEY=xxx npm run fetch:tonight
 
 - Clé TMDB gratuite : https://www.themoviedb.org/settings/api
 - Les noms des flux Canal+ et cinéma (`xmltv_canalsat`, `xmltv_cinema`) sont à vérifier sur xmltvfr.fr. Un flux introuvable est ignoré sans bloquer les autres.
-- Le workflow GitHub `.github/workflows/tonight.yml` relance le script chaque jour vers 15h et commite le fichier. Ajoute le secret `TMDB_API_KEY` dans Settings > Secrets > Actions.
+- Le workflow GitHub `.github/workflows/tonight.yml` relance le script chaque jour vers 15h (et à chaque push), commite le fichier, puis met l'app en ligne sur GitHub Pages.
+
+### Mise en ligne (une seule fois)
+
+1. Settings > Pages > Source : **GitHub Actions**
+2. Settings > Secrets and variables > Actions : ajoute `TMDB_API_KEY`
+3. Actions > « Programme du soir et mise en ligne » > Run workflow
+
+L'app est ensuite sur `https://<compte>.github.io/ce-soir/`, avec les vraies affiches.
 
 ## Comment l'app apprend tes goûts
 
 Tout est dans `src/profile.ts`, stocké en local (pas de compte pour l'instant).
 
-1. **Onboarding** : choix des bouquets reçus (TNT, Canal+, Ciné+), puis 12 films connus à noter.
+1. **Pas de questionnaire** : on arrive direct sur le programme, avec la TNT par défaut. Le bouton réglages permet d'activer des bouquets (Canal+, Ciné+) et d'ajouter ou retirer des chaînes une par une.
 2. **Traits** : chaque film est décrit par ses genres, réalisateurs, 3 premiers acteurs et sa décennie.
 3. **Signaux** : chaque réaction modifie le poids des traits du film.
 
@@ -44,9 +52,9 @@ Tout est dans `src/profile.ts`, stocké en local (pas de compte pour l'instant).
 
    Les genres comptent plus que le réalisateur, qui compte plus que les acteurs et la décennie.
 4. **Score** : somme des poids des traits du film, plus un petit bonus pour les films bien notés sur TMDB.
-5. **Découverte** : dans le top 5, la 4e place va à un film que l'algo connaît mal, pour éviter la bulle.
+5. **Découverte** : après 3 réactions, la 4e place du top 5 va à un film que l'algo connaît mal, pour éviter la bulle.
 
-L'écran « Mes goûts » montre ce que l'app a compris.
+Les réglages montrent aussi ce que l'app a compris de tes goûts.
 
 ## Structure
 
@@ -54,15 +62,13 @@ L'écran « Mes goûts » montre ce que l'app a compris.
 scripts/fetch-tonight.mjs   récupération XMLTV + TMDB
 public/data/tonight.json    films du soir (exemple ou réel)
 src/profile.ts              profil, signaux, score, classement
-src/seeds.ts                films de l'onboarding
 src/genres.ts               normalisation des genres
 src/App.tsx                 écran principal
-src/components/             onboarding, fiche film, affiche
+src/components/             fiche film, réglages des chaînes, affiche
 ```
 
 ## Prochaines étapes
 
-- Brancher le vrai programme (workflow + clé TMDB) et déployer (Coolify, Vercel ou GitHub Pages)
 - Vraies notifications pour « Me rappeler » (PWA + Web Push)
 - Ajouter les plateformes de streaming
 - Compte optionnel pour synchroniser le profil entre appareils

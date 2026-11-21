@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { BOUQUETS, type Film, type Signal, type Tonight } from './types';
-import { applySignal, emptyProfile, loadProfile, rank, saveProfile, topTraits, type Profile } from './profile';
-import { Onboarding } from './components/Onboarding';
+import { applySignal, loadProfile, rank, saveProfile, type Profile } from './profile';
 import { FilmSheet } from './components/FilmSheet';
+import { Settings } from './components/Settings';
 import { Poster } from './components/Poster';
 import { durationLabel, endOf, hhmm, loadTonight, todayLabel } from './utils';
 
@@ -14,9 +14,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [part, setPart] = useState<Part>('all');
   const [openId, setOpenId] = useState<string | null>(null);
-  const [editBouquets, setEditBouquets] = useState(false);
-  const [showTastes, setShowTastes] = useState(false);
-  const [resetArmed, setResetArmed] = useState(false);
+  const [settings, setSettings] = useState(false);
   // Graine fixe pour la session : le film "découverte" ne change pas à chaque clic
   const [seed] = useState(() => Math.floor(Math.random() * 1000));
 
@@ -35,10 +33,8 @@ export default function App() {
   );
   const ranked = useMemo(() => rank(profile, films, seed), [profile, films, seed]);
   const top = ranked.slice(0, 5);
-  const byBouquet = BOUQUETS.filter((b) => profile.bouquets.includes(b.id)).map((b) => ({
-    ...b,
-    films: ranked.filter((r) => r.film.bouquet === b.id),
-  }));
+  const rest = ranked.slice(5);
+  const activeBouquets = BOUQUETS.filter((b) => rest.some((r) => r.film.bouquet === b.id));
 
   const openFilm = tonight?.films.find((f) => f.id === openId) ?? null;
 
@@ -61,19 +57,6 @@ export default function App() {
     setOpenId(f.id);
   };
 
-  if (!profile.onboarded) return <Onboarding profile={profile} onDone={update} />;
-  if (editBouquets)
-    return (
-      <Onboarding
-        profile={profile}
-        bouquetsOnly
-        onDone={(p) => {
-          update(p);
-          setEditBouquets(false);
-        }}
-      />
-    );
-
   return (
     <main className="screen">
       <header className="header">
@@ -81,35 +64,54 @@ export default function App() {
           <span className="muted small">{todayLabel()}</span>
           <h1 className="title title--xl">Ce soir</h1>
         </div>
-        <div className="segmented" role="group" aria-label="Partie de soirée">
-          {(['all', 'prime', 'seconde'] as Part[]).map((p) => (
-            <button key={p} aria-pressed={part === p} className={part === p ? 'is-on' : ''} onClick={() => setPart(p)}>
-              {p === 'all' ? 'Tout' : p === 'prime' ? '21h' : '23h'}
-            </button>
-          ))}
-        </div>
+        <button className="icon-btn" aria-label="Mes chaînes et réglages" onClick={() => setSettings(true)}>
+          <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12" />
+            <circle cx="16" cy="6" r="2" />
+            <circle cx="10" cy="12" r="2" />
+            <circle cx="18" cy="18" r="2" />
+          </svg>
+        </button>
       </header>
+
+      <div className="segmented" role="group" aria-label="Partie de soirée">
+        {(['all', 'prime', 'seconde'] as Part[]).map((p) => (
+          <button key={p} aria-pressed={part === p} className={part === p ? 'is-on' : ''} onClick={() => setPart(p)}>
+            {p === 'all' ? 'Toute la soirée' : p === 'prime' ? 'Vers 21h' : 'Vers 23h'}
+          </button>
+        ))}
+      </div>
 
       {error && <p className="notice">Impossible de charger le programme : {error}</p>}
       {!tonight && !error && <p className="muted">Chargement du programme…</p>}
 
-      {tonight && top.length === 0 && (
-        <p className="notice">Aucun film ce soir sur tes bouquets. Essaie d'en ajouter dans « Mes chaînes ».</p>
+      {tonight && ranked.length === 0 && (
+        <div className="notice">
+          <p>Aucun film sur tes chaînes à ce moment-là.</p>
+          <button className="link" onClick={() => setSettings(true)}>Ajouter des chaînes</button>
+        </div>
+      )}
+
+      {!profile.hintDismissed && ranked.length > 0 && (
+        <div className="hint">
+          <p>Réagis avec « J'aime » ou « Pas pour moi » : l'app affine ses choix pour toi.</p>
+          <button className="link" onClick={() => update({ ...profile, hintDismissed: true })}>Compris</button>
+        </div>
       )}
 
       {top.length > 0 && (
         <section className="stack">
-          <h2 className="eyebrow eyebrow--accent">Pour toi ce soir</h2>
+          <h2 className="eyebrow eyebrow--accent">À voir ce soir</h2>
           <div className="carousel">
-            {top.map(({ film, reason, discovery }, idx) => (
-              <article key={film.id} className={`card ${idx === 0 ? 'card--first' : ''}`}>
+            {top.map(({ film, reason, discovery }) => (
+              <article key={film.id} className="card">
                 <button className="card__main" onClick={() => open(film)}>
                   <Poster title={film.title} poster={film.poster} big className="card__poster" />
                   <span className="card__badge">{film.channel} · {hhmm(film.start)}</span>
                   <span className="card__body">
                     <span className={`card__reason ${discovery ? 'is-discovery' : ''}`}>{reason}</span>
                     <strong className="card__title">{film.title}</strong>
-                    <span className="muted small">
+                    <span className="muted small card__meta">
                       {[film.genres[0], durationLabel(film), endOf(film) && `fin ${endOf(film)}`].filter(Boolean).join(' · ')}
                     </span>
                   </span>
@@ -124,59 +126,30 @@ export default function App() {
         </section>
       )}
 
-      {byBouquet.map((b) =>
-        b.films.length === 0 ? null : (
-          <section key={b.id} className="stack">
-            <h2 className="eyebrow">
-              {b.label} <span className="muted">· {b.films.length} film{b.films.length > 1 ? 's' : ''}</span>
-            </h2>
-            <div className="rail">
-              {b.films.map(({ film }) => (
-                <button key={film.id} className="mini" onClick={() => open(film)}>
-                  <Poster title={film.title} poster={film.poster} className="mini__poster" />
-                  <span className="mini__title">{film.title}</span>
-                  <span className="muted small">{film.channel} · {hhmm(film.start)}</span>
-                </button>
-              ))}
-            </div>
-          </section>
-        ),
-      )}
-
-      {showTastes && (
-        <section className="stack panel">
-          <h2 className="eyebrow">Ce que l'app a compris de toi</h2>
-          {topTraits(profile).length === 0 ? (
-            <p className="muted small">Pas encore assez de réactions.</p>
-          ) : (
-            <div className="tags">
-              {topTraits(profile).map((t) => (
-                <span key={t.kind + t.label} className={`tag ${t.weight > 0 ? 'tag--plus' : 'tag--minus'}`}>
-                  {t.weight > 0 ? '+' : '−'} {t.label}
-                </span>
-              ))}
-            </div>
-          )}
-          <p className="muted small">{profile.signals} réactions enregistrées.</p>
+      {rest.length > 0 && (
+        <section className="stack">
+          <h2 className="eyebrow">Les autres films · {rest.length}</h2>
+          {activeBouquets.map((b) => {
+            const list = rest.filter((r) => r.film.bouquet === b.id);
+            return (
+              <div key={b.id} className="stack-sm">
+                {activeBouquets.length > 1 && <span className="muted small">{b.label}</span>}
+                <div className="rail">
+                  {list.map(({ film }) => (
+                    <button key={film.id} className="mini" onClick={() => open(film)}>
+                      <Poster title={film.title} poster={film.poster} className="mini__poster" />
+                      <span className="mini__title">{film.title}</span>
+                      <span className="muted small">{film.channel} · {hhmm(film.start)}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
         </section>
       )}
 
-      <footer className="footer">
-        <button className="link" onClick={() => setEditBouquets(true)}>Mes chaînes</button>
-        <button className="link" onClick={() => setShowTastes((v) => !v)}>Mes goûts</button>
-        <button
-          className="link"
-          onClick={() => {
-            if (resetArmed) {
-              update(emptyProfile());
-              setResetArmed(false);
-            } else setResetArmed(true);
-          }}
-        >
-          {resetArmed ? 'Confirmer : tout effacer ?' : 'Repartir de zéro'}
-        </button>
-        {tonight?.source === 'sample' && <p className="muted small">Soirée d'exemple, pas le vrai programme.</p>}
-      </footer>
+      {tonight?.source === 'sample' && <p className="muted small center">Soirée d'exemple, pas le vrai programme.</p>}
 
       {openFilm && (
         <FilmSheet
@@ -186,6 +159,10 @@ export default function App() {
           onHide={() => hide(openFilm)}
           onClose={() => setOpenId(null)}
         />
+      )}
+
+      {settings && tonight && (
+        <Settings profile={profile} channels={tonight.channels ?? []} onChange={update} onClose={() => setSettings(false)} />
       )}
     </main>
   );

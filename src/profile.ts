@@ -8,8 +8,13 @@ import type { Bouquet, Film, Signal, Taggable } from './types';
  */
 export interface Profile {
   version: 1;
-  onboarded: boolean;
+  /** Bouquets reçus. Par défaut : la TNT du pays. */
   bouquets: Bouquet[];
+  /** Chaînes retirées, même si leur bouquet est actif */
+  excluded: Record<string, true>;
+  /** Chaînes ajoutées une par une, hors bouquet actif */
+  added: Record<string, true>;
+  hintDismissed: boolean;
   weights: Record<string, number>;
   hidden: Record<string, true>;
   reminders: Record<string, true>;
@@ -20,8 +25,10 @@ const KEY = 'ce-soir.profile.v1';
 
 export const emptyProfile = (): Profile => ({
   version: 1,
-  onboarded: false,
   bouquets: ['tnt'],
+  excluded: {},
+  added: {},
+  hintDismissed: false,
   weights: {},
   hidden: {},
   reminders: {},
@@ -125,17 +132,23 @@ function reasonFor(p: Profile, f: Film): string {
 
 /**
  * Classe les films du soir.
- * - filtre sur les bouquets reçus et les films masqués
+ * - filtre sur les chaînes choisies et les films masqués
  * - trie par score
  * - glisse 1 film "découverte" dans le top (environ 1 sur 5), pour éviter la bulle
  */
+export function channelOn(p: Profile, channelId: string, bouquet: Bouquet) {
+  if (p.excluded[channelId]) return false;
+  return p.bouquets.includes(bouquet) || !!p.added[channelId];
+}
+
 export function rank(p: Profile, films: Film[], seed = 0): Ranked[] {
-  const pool = films.filter((f) => p.bouquets.includes(f.bouquet) && !p.hidden[f.id]);
+  const pool = films.filter((f) => channelOn(p, f.channelId, f.bouquet) && !p.hidden[f.id]);
   const ranked: Ranked[] = pool
     .map((film) => ({ film, score: score(p, film), reason: reasonFor(p, film), discovery: false }))
     .sort((a, b) => b.score - a.score);
 
-  if (ranked.length > 5) {
+  // Le slot découverte n'a de sens qu'une fois que l'app a appris quelque chose
+  if (ranked.length > 5 && p.signals >= 3) {
     const tail = ranked.slice(5);
     const leastKnown = [...tail].sort((a, b) => familiarity(p, a.film) - familiarity(p, b.film));
     const candidates = leastKnown.slice(0, 3);

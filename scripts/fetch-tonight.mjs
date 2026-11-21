@@ -106,7 +106,10 @@ function genres(raw) {
 function parseSource(xml, bouquet, win, channels, films, seenChannel) {
   for (const m of xml.matchAll(/<channel\b([^>]*)>([\s\S]*?)<\/channel>/g)) {
     const id = attr(m[1], 'id');
-    if (id && !channels.has(id)) channels.set(id, tag(m[2], 'display-name') ?? id);
+    if (!id) continue;
+    if (!channels.has(id)) channels.set(id, tag(m[2], 'display-name') ?? id);
+    // Une chaîne appartient au premier bouquet où on la voit (TNT avant Canal+)
+    if (!seenChannel.has(id)) seenChannel.set(id, bouquet);
   }
   for (const m of xml.matchAll(/<programme\b([^>]*)>([\s\S]*?)<\/programme>/g)) {
     const start = parseTime(attr(m[1], 'start'));
@@ -116,9 +119,8 @@ function parseSource(xml, bouquet, win, channels, films, seenChannel) {
     if (!isFilm(cats)) continue;
     const channelId = attr(m[1], 'channel');
     if (!channelId) continue;
-    // Une chaîne garde le premier bouquet où on l'a vue (TNT avant Canal+)
-    if (seenChannel.has(channelId) && seenChannel.get(channelId) !== bouquet) continue;
-    seenChannel.set(channelId, bouquet);
+    if (!seenChannel.has(channelId)) seenChannel.set(channelId, bouquet);
+    if (seenChannel.get(channelId) !== bouquet) continue; // déjà lue dans un bouquet précédent
 
     const stop = parseTime(attr(m[1], 'stop'));
     const title = tag(body, 'title') ?? 'Sans titre';
@@ -215,6 +217,16 @@ if (TMDB_KEY) {
 mkdirSync(dirname(OUT), { recursive: true });
 writeFileSync(
   OUT,
-  JSON.stringify({ date: win.day, generatedAt: new Date().toISOString(), source: 'xmltv', films: list }, null, 1),
+  JSON.stringify(
+    {
+      date: win.day,
+      generatedAt: new Date().toISOString(),
+      source: 'xmltv',
+      channels: [...seenChannel.entries()].map(([id, bouquet]) => ({ id, name: channels.get(id) ?? id, bouquet })),
+      films: list,
+    },
+    null,
+    1,
+  ),
 );
 console.log(`Écrit : ${OUT}`);

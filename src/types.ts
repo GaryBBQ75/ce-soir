@@ -27,14 +27,22 @@ export interface Film {
   part: 'prime' | 'seconde';
 }
 
+export interface Channel {
+  id: string;
+  name: string;
+  bouquet: Bouquet;
+}
+
 export interface Tonight {
   date: string;
   generatedAt: string;
   source: 'xmltv' | 'sample';
+  /** Toutes les chaînes connues, même sans film ce soir (pour les réglages) */
+  channels: Channel[];
   films: Film[];
 }
 
-/** Ce que l'algo sait d'un film, pour l'onboarding comme pour la soirée. */
+/** Ce que l'algo sait d'un film. */
 export type Taggable = Pick<Film, 'genres' | 'directors' | 'cast' | 'year'>;
 
 export type Signal = 'like' | 'pass' | 'open' | 'remind' | 'watched';
