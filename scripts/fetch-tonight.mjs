@@ -16,11 +16,21 @@ const OUT = resolve(ROOT, 'public/data/tonight.json');
 
 // Ordre important : une chaîne déjà vue dans un bouquet précédent garde ce bouquet.
 // Les noms de fichiers Canal+ et cinéma sont à vérifier sur https://xmltvfr.fr
+// Le dernier flux (toutes les chaînes) est lourd : il sert à récupérer les chaînes hors TNT.
 const SOURCES = [
   { bouquet: 'tnt', url: 'https://xmltvfr.fr/xmltv/xmltv_tnt.xml.gz' },
   { bouquet: 'canal', url: 'https://xmltvfr.fr/xmltv/xmltv_canalsat.xml.gz' },
   { bouquet: 'cinema', url: 'https://xmltvfr.fr/xmltv/xmltv_cinema.xml.gz' },
+  { bouquet: 'autres', url: 'https://xmltvfr.fr/xmltv/xmltv.xml.gz' },
 ];
+
+/** Les chaînes Canal+ et Ciné+ sont aussi dans le flux TNT : on les range par leur nom. */
+function bouquetOf(id, name, fallback) {
+  const s = `${id} ${name}`;
+  if (/cin[ée]\s?\+|cineplus|\bocs\b|tcm|paramount/i.test(s)) return 'cinema';
+  if (/canal\s?\+|canalplus/i.test(s)) return 'canal';
+  return fallback;
+}
 
 const TMDB_KEY = process.env.TMDB_API_KEY;
 
@@ -117,9 +127,10 @@ function parseSource(xml, bouquet, win, channels, films, seenChannel) {
   for (const m of xml.matchAll(/<channel\b([^>]*)>([\s\S]*?)<\/channel>/g)) {
     const id = attr(m[1], 'id');
     if (!id) continue;
-    if (!channels.has(id)) channels.set(id, tag(m[2], 'display-name') ?? id);
-    // Une chaîne appartient au premier bouquet où on la voit (TNT avant Canal+)
-    if (!seenChannel.has(id)) seenChannel.set(id, bouquet);
+    const name = tag(m[2], 'display-name') ?? id;
+    if (!channels.has(id)) channels.set(id, name);
+    // Une chaîne appartient au premier flux où on la voit (TNT avant les autres)
+    if (!seenChannel.has(id)) seenChannel.set(id, { source: bouquet, bouquet: bouquetOf(id, name, bouquet) });
   }
   for (const m of xml.matchAll(/<programme\b([^>]*)>([\s\S]*?)<\/programme>/g)) {
     const start = parseTime(attr(m[1], 'start'));
@@ -130,8 +141,9 @@ function parseSource(xml, bouquet, win, channels, films, seenChannel) {
     if (!kind) continue;
     const channelId = attr(m[1], 'channel');
     if (!channelId) continue;
-    if (!seenChannel.has(channelId)) seenChannel.set(channelId, bouquet);
-    if (seenChannel.get(channelId) !== bouquet) continue; // déjà lue dans un bouquet précédent
+    if (!seenChannel.has(channelId)) seenChannel.set(channelId, { source: bouquet, bouquet: bouquetOf(channelId, channelId, bouquet) });
+    const ch = seenChannel.get(channelId);
+    if (ch.source !== bouquet) continue; // déjà lue dans un flux précédent
 
     const stop = parseTime(attr(m[1], 'stop'));
     if (Number.isFinite(stop) && (stop - start) / 60000 < MIN_DURATION) continue;
@@ -147,7 +159,7 @@ function parseSource(xml, bouquet, win, channels, films, seenChannel) {
       year: tag(body, 'date')?.slice(0, 4),
       channel: channels.get(channelId) ?? channelId,
       channelId,
-      bouquet,
+      bouquet: ch.bouquet,
       start: new Date(start).toISOString(),
       stop: Number.isFinite(stop) ? new Date(stop).toISOString() : undefined,
       durationMin: Number.isFinite(stop) ? Math.round((stop - start) / 60000) : undefined,
@@ -272,7 +284,7 @@ writeFileSync(
       date: win.day,
       generatedAt: new Date().toISOString(),
       source: 'xmltv',
-      channels: [...seenChannel.entries()].map(([id, bouquet]) => ({ id, name: channels.get(id) ?? id, bouquet })),
+      channels: [...seenChannel.entries()].map(([id, c]) => ({ id, name: channels.get(id) ?? id, bouquet: c.bouquet })),
       films: list,
     },
     null,

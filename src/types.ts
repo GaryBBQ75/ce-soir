@@ -1,9 +1,10 @@
-export type Bouquet = 'tnt' | 'canal' | 'cinema';
+export type Bouquet = 'tnt' | 'canal' | 'cinema' | 'autres';
 
 export const BOUQUETS: { id: Bouquet; label: string; hint: string }[] = [
   { id: 'tnt', label: 'TNT', hint: 'TF1, France 2, M6, Arte, W9…' },
   { id: 'canal', label: 'Canal+', hint: 'Canal+, Canal+ Cinéma(s), Grand Écran…' },
   { id: 'cinema', label: 'Ciné+ / OCS', hint: 'Ciné+ Frisson, Famiz, Classic…' },
+  { id: 'autres', label: 'Autres chaînes', hint: 'Câble, satellite, box' },
 ];
 
 export type Kind = 'film' | 'serie' | 'doc' | 'divertissement' | 'sport';

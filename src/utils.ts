@@ -45,5 +45,11 @@ export function todayLabel() {
 export async function loadTonight(): Promise<Tonight> {
   const res = await fetch(`${import.meta.env.BASE_URL}data/tonight.json`, { cache: 'no-cache' });
   if (!res.ok) throw new Error(`tonight.json introuvable (${res.status})`);
-  return res.json();
+  const data = (await res.json()) as Tonight;
+  // Compatibilité avec les anciens fichiers (films seulement, sans liste de chaînes)
+  const films = data.films.map((f) => ({ ...f, kind: f.kind ?? 'film', genres: f.genres ?? [], directors: f.directors ?? [], cast: f.cast ?? [] }));
+  const channels =
+    data.channels ??
+    [...new Map(films.map((f) => [f.channelId, { id: f.channelId, name: f.channel, bouquet: f.bouquet }])).values()];
+  return { ...data, films, channels };
 }
