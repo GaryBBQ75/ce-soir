@@ -160,3 +160,59 @@ button { font: inherit; color: inherit; }
 .tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; display: flex; justify-content: center; gap: 8px; padding: 8px 20px calc(8px + env(safe-area-inset-bottom)); background: rgba(14, 14, 16, 0.92); backdrop-filter: blur(12px); border-top: 1px solid var(--surface-2); }
 .tabbar button { flex: 1; max-width: 240px; min-height: 52px; border: 0; background: none; color: var(--muted); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 12px; font-weight: 600; cursor: pointer; border-radius: 14px; }
 .tabbar button.is-on { color: var(--text); background: var(--surface); }
+
+/* Bandeau des émissions suivies */
+.live-banner { display: flex; flex-direction: column; gap: 6px; margin-top: -10px; }
+.live-banner button { display: flex; align-items: center; gap: 4px; width: 100%; min-height: 44px; padding: 10px 14px; border: 1px solid #5a2a27; border-radius: 14px; background: #2a1514; color: var(--text); text-align: left; cursor: pointer; font-size: 14px; }
+.live-banner__text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.btn--live { display: inline-flex; align-items: center; justify-content: center; background: #ff5a4f; color: #fff; font-weight: 700; text-decoration: none; }
+.btn--live:hover { color: #fff; }
+.follow { display: flex; flex-direction: column; gap: 10px; }
+.other { display: block; width: 100%; text-align: left; border: 0; background: var(--bg); border-radius: 10px; padding: 10px 12px; font-size: 14px; cursor: pointer; }
+.badge { display: inline-block; margin-right: 6px; padding: 1px 6px; border-radius: 6px; background: var(--accent); color: var(--accent-ink); font-size: 11px; font-weight: 700; vertical-align: 2px; }
+
+/* Alertes et toasts */
+.alerts { position: fixed; left: 50%; transform: translateX(-50%); top: max(12px, env(safe-area-inset-top)); z-index: 20; width: min(480px, calc(100% - 24px)); display: flex; flex-direction: column; gap: 8px; }
+.alert { display: flex; align-items: stretch; border-radius: 16px; background: #2a1514; border: 1px solid #5a2a27; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5); }
+.alert__main { flex: 1; display: flex; align-items: center; gap: 4px; min-height: 52px; padding: 10px 14px; border: 0; background: none; color: var(--text); text-align: left; font-size: 14px; font-weight: 600; cursor: pointer; }
+.alert__close { width: 48px; border: 0; background: none; color: var(--muted); font-size: 22px; cursor: pointer; }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(84px + env(safe-area-inset-bottom)); z-index: 20; padding: 10px 16px; border-radius: 999px; background: var(--text); color: var(--bg); font-size: 14px; font-weight: 600; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4); }
+
+/* Réglages : rappels et suivis */
+.chip--plain { text-decoration: none; color: var(--text-2); }
+.chip--plain.is-on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.followed { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.followed li { display: flex; align-items: center; gap: 12px; font-size: 14px; }
+.followed li > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Onglet Chaînes : recherche, barre d'outils, réorganisation */
+.search { display: flex; align-items: center; gap: 10px; padding: 0 14px; min-height: 46px; border-radius: 14px; background: var(--surface); color: var(--muted); }
+.search input { flex: 1; min-width: 0; border: 0; background: none; color: var(--text); font: inherit; font-size: 16px; outline: none; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; }
+.segmented--sm { margin-top: 0; }
+.segmented--sm button { min-height: 34px; font-size: 13px; padding: 0 12px; flex: none; }
+.channel__move { flex: none; display: flex; flex-direction: column; gap: 2px; }
+.channel__move button { width: 34px; height: 26px; border: 1px solid var(--line); border-radius: 8px; background: none; color: var(--text); cursor: pointer; }
+
+/* Grille horaire (test) */
+.grid { overflow: auto; margin: 0 -20px; max-height: 70dvh; border-top: 1px solid var(--surface-2); -webkit-overflow-scrolling: touch; }
+.grid__inner { position: relative; }
+.grid__head { position: sticky; top: 0; z-index: 3; display: flex; height: 30px; background: var(--bg); border-bottom: 1px solid var(--surface-2); }
+.grid__corner { position: sticky; left: 0; z-index: 4; width: 64px; flex: none; background: var(--bg); }
+.grid__ticks { position: relative; }
+.grid__tick { position: absolute; top: 8px; font-size: 11px; color: var(--muted); transform: translateX(-50%); font-variant-numeric: tabular-nums; }
+.grid__row { display: flex; height: 58px; border-bottom: 1px solid var(--surface-2); }
+.grid__logo { position: sticky; left: 0; z-index: 2; width: 64px; flex: none; display: flex; align-items: center; justify-content: center; background: #fff; border-right: 1px solid var(--surface-2); }
+.grid__logo.is-dark { background: #2a2a30; }
+.grid__logo img { width: 44px; height: 32px; object-fit: contain; }
+.grid__logo span { color: #111; font-size: 11px; font-weight: 700; }
+.grid__track { position: relative; }
+.grid__block { position: absolute; top: 4px; bottom: 4px; display: flex; flex-direction: column; justify-content: center; gap: 2px; padding: 0 8px; border: 0; border-radius: 8px; background: var(--surface); color: var(--text); text-align: left; overflow: hidden; cursor: pointer; }
+.grid__block.is-live { background: var(--surface-2); }
+.grid__block.is-followed { box-shadow: inset 0 0 0 2px var(--accent); }
+.grid__block.is-dim { opacity: 0.3; }
+.grid__title { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.grid__time { font-size: 11px; color: var(--muted); }
+.grid__now { position: absolute; top: 0; bottom: 0; width: 2px; background: #ff5a4f; z-index: 1; pointer-events: none; }

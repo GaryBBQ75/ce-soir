@@ -42,7 +42,12 @@ Le workflow `.github/workflows/tonight.yml` tourne chaque jour vers 6h, 12h, 15h
 
 - **Moment** : Maintenant (en cours ou qui commence dans 30 min), 1re partie (vers 21h10), 2e partie (vers 22h50).
 - **Pour toi** : les programmes du moment classés selon tes goûts, avec une ligne de temps (avancement, temps restant ou « dans 12 min »).
-- **Chaînes** : toutes tes chaînes d'un coup, avec ce qui passe au moment choisi, sa progression et ce qui suit. Étoile pour mettre une chaîne en favori, en haut de la liste.
+- **Chaînes** : toutes tes chaînes d'un coup, en **liste** (ce qui passe, progression, ce qui suit) ou en **grille horaire** (test). Recherche par titre, acteur ou équipe ; filtre par type ; tri « Mon ordre » ou « Pour toi » ; favoris et réorganisation des chaînes.
+- **Émissions suivies** : « Suivre cette émission » sur une fiche. Elle remonte dans les suggestions, et un bandeau rouge s'affiche en haut de l'app dès qu'elle est en cours (ou commence dans 15 min).
+- **Rappels** : « Me rappeler » sur un programme, ou « Me prévenir à chaque diffusion » sur une émission suivie. Message dans l'app + notification système si autorisée (réglage : 5, 10, 15 ou 30 min avant). « Ajouter à l'agenda » télécharge un fichier .ics avec alarme.
+- **Regarder en direct** : lien vers le site de la chaîne (TF1+, france.tv, M6+, arte.tv, myCANAL…), dans `src/links.ts`.
+
+> Limite actuelle : sans serveur, les notifications partent seulement quand l'app est ouverte ou en arrière-plan. Pour être prévenu app fermée, il faudra un petit serveur Web Push (par exemple sur Coolify). L'ajout à l'agenda marche dans tous les cas.
 
 ## Comment l'app apprend tes goûts
 
@@ -80,6 +85,7 @@ src/components/             fiche film, réglages des chaînes, affiche
 
 ## Prochaines étapes
 
-- Vraies notifications pour « Me rappeler » (PWA + Web Push)
+- Serveur Web Push pour les notifications app fermée
+- Manifeste PWA (installer l'app sur l'écran d'accueil)
 - Ajouter les plateformes de streaming
 - Compte optionnel pour synchroniser le profil entre appareils

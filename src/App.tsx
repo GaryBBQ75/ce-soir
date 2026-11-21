@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { KINDS, kindLabel, type Film, type Kind, type Signal, type Tonight } from './types';
-import { applySignal, loadProfile, rank, saveProfile, type Profile } from './profile';
+import { applySignal, isFollowed, loadProfile, rank, saveProfile, showKey, type Profile } from './profile';
+import { checkReminders, downloadIcs, type Alert } from './notify';
 import { FilmSheet } from './components/FilmSheet';
 import { Settings } from './components/Settings';
 import { Poster } from './components/Poster';
@@ -29,6 +30,8 @@ export default function App() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [settings, setSettings] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [toast, setToast] = useState<string | null>(null);
   // Graine fixe pour la session : le film "découverte" ne change pas à chaque clic
   const [seed] = useState(() => Math.floor(Math.random() * 1000));
 
@@ -43,7 +46,24 @@ export default function App() {
     saveProfile(p);
   };
 
+  // Rappels dus : notification système + message dans l'app
+  useEffect(() => {
+    if (!tonight) return;
+    const due = checkReminders(profile, tonight.films, now);
+    if (due.length) setAlerts((a) => [...a, ...due]);
+  }, [now, tonight, profile]);
+
+  const flash = (text: string) => {
+    setToast(text);
+    setTimeout(() => setToast(null), 2500);
+  };
+
   const at = tonight ? refTime(when, tonight.date, now) : now;
+
+  // Émissions suivies en cours (ou qui commencent dans 15 min) sur mes chaînes
+  const followedLive = (tonight?.films ?? []).filter(
+    (f) => isFollowed(profile, f) && stopOf(f) > now && Date.parse(f.start) - now < 15 * 60_000,
+  );
 
   const candidates = useMemo(() => {
     const all = (tonight?.films ?? []).filter(suggestable).filter((f) => stopOf(f) > now);
@@ -79,11 +99,21 @@ export default function App() {
     if (f.kind !== 'autre') update(applySignal(profile, f, 'open'));
     setOpenId(f.id);
   };
-  const toggleFavorite = (id: string) => {
-    const favorites = { ...profile.favorites };
-    if (favorites[id]) delete favorites[id];
-    else favorites[id] = true;
-    update({ ...profile, favorites });
+  const toggleReminder = (f: Film) => {
+    const reminders = { ...profile.reminders };
+    const on = !reminders[f.id];
+    if (on) reminders[f.id] = true;
+    else delete reminders[f.id];
+    update({ ...(on ? applySignal(profile, f, 'remind') : profile), reminders });
+    flash(on ? `Rappel ${profile.notifyBefore} min avant ${f.title}` : 'Rappel retiré');
+  };
+  const follow = (f: Film, on: boolean, notify: boolean) => {
+    const followed = { ...profile.followed };
+    const key = showKey(f.title);
+    if (on) followed[key] = { title: f.title, notify };
+    else delete followed[key];
+    update({ ...(on && !profile.followed[key] ? applySignal(profile, f, 'like') : profile), followed });
+    if (on !== !!profile.followed[key]) flash(on ? `Tu suis ${f.title}` : `Tu ne suis plus ${f.title}`);
   };
 
   return (
@@ -111,6 +141,19 @@ export default function App() {
           </button>
         ))}
       </div>
+
+      {followedLive.length > 0 && (
+        <div className="live-banner" role="status">
+          {followedLive.slice(0, 3).map((f) => (
+            <button key={f.id} onClick={() => open(f)}>
+              <span className="live-dot" aria-hidden="true" />
+              <span className="live-banner__text">
+                <strong>{f.title}</strong> {isOn(f, now) ? 'en cours' : `à ${hhmm(f.start)}`} sur {f.channel}
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
 
       {error && <p className="notice">Impossible de charger le programme : {error}</p>}
       {!tonight && !error && <p className="muted">Chargement du programme…</p>}
@@ -197,15 +240,7 @@ export default function App() {
       )}
 
       {tab === 'chaines' && tonight && (
-        <Channels
-          profile={profile}
-          channels={tonight.channels}
-          films={tonight.films}
-          at={at}
-          now={now}
-          onOpen={open}
-          onToggleFavorite={toggleFavorite}
-        />
+        <Channels profile={profile} channels={tonight.channels} films={tonight.films} at={at} now={now} onOpen={open} onChange={update} />
       )}
 
       {tonight?.source === 'sample' && <p className="muted small center">Soirée d'exemple, pas le vrai programme.</p>}
@@ -229,13 +264,37 @@ export default function App() {
       {openFilm && (
         <FilmSheet
           film={openFilm}
+          films={tonight?.films ?? []}
           now={now}
-          reminded={!!profile.reminders[openFilm.id]}
-          onSignal={(s) => signal(openFilm, s)}
+          profile={profile}
+          onSignal={(s) => {
+            signal(openFilm, s);
+            flash(s === 'like' ? 'Noté : tu aimes' : s === 'watched' ? 'Noté : déjà vu' : 'Noté');
+          }}
           onHide={() => hide(openFilm)}
           onClose={() => setOpenId(null)}
+          onToggleReminder={() => toggleReminder(openFilm)}
+          onAgenda={() => flash(downloadIcs(openFilm, profile.notifyBefore) ? 'Fichier agenda téléchargé' : 'Téléchargement impossible ici')}
+          onFollow={(on, notify) => follow(openFilm, on, notify)}
+          onOpen={open}
         />
       )}
+
+      {alerts.length > 0 && (
+        <div className="alerts" role="alert">
+          {alerts.map((a) => (
+            <div key={a.id} className="alert">
+              <button className="alert__main" onClick={() => open(a.film)}>
+                <span className="live-dot" aria-hidden="true" />
+                {a.text}
+              </button>
+              <button className="alert__close" aria-label="Fermer" onClick={() => setAlerts((l) => l.filter((x) => x.id !== a.id))}>×</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {toast && <div className="toast" role="status">{toast}</div>}
 
       {settings && tonight && (
         <Settings profile={profile} channels={tonight.channels ?? []} onChange={update} onClose={() => setSettings(false)} />

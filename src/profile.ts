@@ -21,7 +21,21 @@ export interface Profile {
   hidden: Record<string, true>;
   reminders: Record<string, true>;
   signals: number;
+  /** Émissions suivies (récurrentes), par titre normalisé */
+  followed: Record<string, { title: string; notify: boolean }>;
+  /** Ordre personnalisé des chaînes (ids) ; vide = ordre des numéros */
+  channelOrder: string[];
+  /** Prévenir combien de minutes avant le début */
+  notifyBefore: number;
+  /** Notifications système autorisées et voulues */
+  notifyEnabled: boolean;
 }
+
+/** Clé stable d'une émission récurrente : titre sans accents ni ponctuation. */
+export const showKey = (title: string) =>
+  title.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
+export const isFollowed = (p: Profile, f: Pick<Film, 'title'>) => !!p.followed[showKey(f.title)];
 
 const KEY = 'ce-soir.profile.v1';
 
@@ -36,6 +50,10 @@ export const emptyProfile = (): Profile => ({
   hidden: {},
   reminders: {},
   signals: 0,
+  followed: {},
+  channelOrder: [],
+  notifyBefore: 10,
+  notifyEnabled: false,
 });
 
 export function loadProfile(): Profile {
@@ -101,6 +119,7 @@ export function score(p: Profile, f: Film): number {
   let s = 0;
   for (const t of traits(f)) s += (p.weights[t] ?? 0) * factorOf(t);
   if (f.rating) s += (f.rating - 6.5) * 0.4; // un bon film remonte un peu, même hors profil
+  if (isFollowed(p, f)) s += 4; // une émission suivie passe devant
   return s;
 }
 
@@ -125,6 +144,7 @@ const LABEL: Record<Prefix, (v: string) => string> = {
 };
 
 function reasonFor(p: Profile, f: Film): string {
+  if (isFollowed(p, f)) return 'Tu suis cette émission';
   let best: [string, number] | null = null;
   for (const t of traits(f)) {
     const c = (p.weights[t] ?? 0) * factorOf(t);
