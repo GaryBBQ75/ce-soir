@@ -1,0 +1,395 @@
+{
+ "date": "2026-11-21",
+ "generatedAt": "2026-11-21T20:07:36.192Z",
+ "source": "sample",
+ "films": [
+  {
+   "id": "f2-prenom",
+   "title": "Le Prénom",
+   "year": "2012",
+   "channel": "France 2",
+   "channelId": "France2.fr",
+   "bouquet": "tnt",
+   "start": "2026-11-21T21:10:00+01:00",
+   "stop": "2026-11-21T21:59:00.000Z",
+   "durationMin": 109,
+   "genres": [
+    "Comédie"
+   ],
+   "directors": [
+    "Alexandre de La Patellière",
+    "Matthieu Delaporte"
+   ],
+   "cast": [
+    "Patrick Bruel",
+    "Valérie Benguigui",
+    "Charles Berling"
+   ],
+   "synopsis": "Vincent annonce le prénom de son futur fils à un dîner entre proches. Le choix déclenche une dispute qui fait remonter de vieux règlements de comptes.",
+   "part": "prime"
+  },
+  {
+   "id": "arte-mortaux",
+   "title": "La Mort aux trousses",
+   "year": "1959",
+   "channel": "Arte",
+   "channelId": "Arte.fr",
+   "bouquet": "tnt",
+   "start": "2026-11-21T20:55:00+01:00",
+   "stop": "2026-11-21T22:11:00.000Z",
+   "durationMin": 136,
+   "genres": [
+    "Thriller",
+    "Aventure"
+   ],
+   "directors": [
+    "Alfred Hitchcock"
+   ],
+   "cast": [
+    "Cary Grant",
+    "Eva Marie Saint",
+    "James Mason"
+   ],
+   "synopsis": "Pris pour un espion, un publicitaire new-yorkais est traqué à travers les États-Unis.",
+   "part": "prime"
+  },
+  {
+   "id": "m6-paddington",
+   "title": "Paddington 2",
+   "year": "2017",
+   "channel": "M6",
+   "channelId": "M6.fr",
+   "bouquet": "tnt",
+   "start": "2026-11-21T21:10:00+01:00",
+   "stop": "2026-11-21T21:53:00.000Z",
+   "durationMin": 103,
+   "genres": [
+    "Famille",
+    "Comédie"
+   ],
+   "directors": [
+    "Paul King"
+   ],
+   "cast": [
+    "Hugh Grant",
+    "Sally Hawkins",
+    "Hugh Bonneville"
+   ],
+   "synopsis": "Paddington cherche le cadeau parfait pour sa tante. Quand le livre qu'il convoite est volé, il est accusé à tort.",
+   "part": "prime"
+  },
+  {
+   "id": "w9-madmax",
+   "title": "Mad Max: Fury Road",
+   "year": "2015",
+   "channel": "W9",
+   "channelId": "W9.fr",
+   "bouquet": "tnt",
+   "start": "2026-11-21T21:05:00+01:00",
+   "stop": "2026-11-21T22:05:00.000Z",
+   "durationMin": 120,
+   "genres": [
+    "Action",
+    "Science-fiction"
+   ],
+   "directors": [
+    "George Miller"
+   ],
+   "cast": [
+    "Tom Hardy",
+    "Charlize Theron",
+    "Nicholas Hoult"
+   ],
+   "synopsis": "Dans un monde post-apocalyptique, Max et Furiosa fuient un tyran à bord d'un camion de guerre.",
+   "part": "prime"
+  },
+  {
+   "id": "f3-tontons",
+   "title": "Les Tontons flingueurs",
+   "year": "1963",
+   "channel": "France 3",
+   "channelId": "France3.fr",
+   "bouquet": "tnt",
+   "start": "2026-11-21T23:05:00+01:00",
+   "stop": "2026-11-21T23:50:00.000Z",
+   "durationMin": 105,
+   "genres": [
+    "Comédie",
+    "Policier"
+   ],
+   "directors": [
+    "Georges Lautner"
+   ],
+   "cast": [
+    "Lino Ventura",
+    "Bernard Blier",
+    "Francis Blanche"
+   ],
+   "synopsis": "Un ancien truand rangé hérite de l'affaire et de la fille d'un ami mourant.",
+   "part": "seconde"
+  },
+  {
+   "id": "6ter-drive",
+   "title": "Drive",
+   "year": "2011",
+   "channel": "6ter",
+   "channelId": "6ter.fr",
+   "bouquet": "tnt",
+   "start": "2026-11-21T22:55:00+01:00",
+   "stop": "2026-11-21T23:35:00.000Z",
+   "durationMin": 100,
+   "genres": [
+    "Policier",
+    "Thriller"
+   ],
+   "directors": [
+    "Nicolas Winding Refn"
+   ],
+   "cast": [
+    "Ryan Gosling",
+    "Carey Mulligan",
+    "Bryan Cranston"
+   ],
+   "synopsis": "Cascadeur le jour, chauffeur pour braqueurs la nuit, un homme solitaire se retrouve pris dans un engrenage.",
+   "part": "seconde"
+  },
+  {
+   "id": "tmc-heat",
+   "title": "Heat",
+   "year": "1995",
+   "channel": "TMC",
+   "channelId": "TMC.fr",
+   "bouquet": "tnt",
+   "start": "2026-11-21T23:10:00+01:00",
+   "stop": "2026-11-22T01:00:00.000Z",
+   "durationMin": 170,
+   "genres": [
+    "Policier",
+    "Action"
+   ],
+   "directors": [
+    "Michael Mann"
+   ],
+   "cast": [
+    "Al Pacino",
+    "Robert De Niro",
+    "Val Kilmer"
+   ],
+   "synopsis": "À Los Angeles, un flic obsessionnel traque un braqueur méthodique.",
+   "part": "seconde"
+  },
+  {
+   "id": "c-oppenheimer",
+   "title": "Oppenheimer",
+   "year": "2023",
+   "channel": "Canal+",
+   "channelId": "CanalPlus.fr",
+   "bouquet": "canal",
+   "start": "2026-11-21T21:10:00+01:00",
+   "stop": "2026-11-21T23:10:00.000Z",
+   "durationMin": 180,
+   "genres": [
+    "Histoire",
+    "Drame"
+   ],
+   "directors": [
+    "Christopher Nolan"
+   ],
+   "cast": [
+    "Cillian Murphy",
+    "Emily Blunt",
+    "Matt Damon"
+   ],
+   "synopsis": "Le portrait du physicien qui a dirigé la mise au point de la bombe atomique.",
+   "part": "prime"
+  },
+  {
+   "id": "cc-anatomie",
+   "title": "Anatomie d'une chute",
+   "year": "2023",
+   "channel": "Canal+ Cinéma(s)",
+   "channelId": "CanalPlusCinema.fr",
+   "bouquet": "canal",
+   "start": "2026-11-21T20:50:00+01:00",
+   "stop": "2026-11-21T22:21:00.000Z",
+   "durationMin": 151,
+   "genres": [
+    "Drame",
+    "Thriller"
+   ],
+   "directors": [
+    "Justine Triet"
+   ],
+   "cast": [
+    "Sandra Hüller",
+    "Swann Arlaud"
+   ],
+   "synopsis": "Une romancière est soupçonnée d'avoir tué son mari. Leur fils malvoyant est le seul témoin.",
+   "part": "prime"
+  },
+  {
+   "id": "cge-brute",
+   "title": "Le Bon, la Brute et le Truand",
+   "year": "1966",
+   "channel": "Canal+ Grand Écran",
+   "channelId": "CanalPlusGrandEcran.fr",
+   "bouquet": "canal",
+   "start": "2026-11-21T20:50:00+01:00",
+   "stop": "2026-11-21T22:48:00.000Z",
+   "durationMin": 178,
+   "genres": [
+    "Western"
+   ],
+   "directors": [
+    "Sergio Leone"
+   ],
+   "cast": [
+    "Clint Eastwood",
+    "Lee Van Cleef",
+    "Eli Wallach"
+   ],
+   "synopsis": "Trois hommes que tout oppose se disputent un trésor en pleine guerre de Sécession.",
+   "part": "prime"
+  },
+  {
+   "id": "cbo-barbie",
+   "title": "Barbie",
+   "year": "2023",
+   "channel": "Canal+ Box Office",
+   "channelId": "CanalPlusBoxOffice.fr",
+   "bouquet": "canal",
+   "start": "2026-11-21T21:00:00+01:00",
+   "stop": "2026-11-21T21:54:00.000Z",
+   "durationMin": 114,
+   "genres": [
+    "Comédie",
+    "Fantastique"
+   ],
+   "directors": [
+    "Greta Gerwig"
+   ],
+   "cast": [
+    "Margot Robbie",
+    "Ryan Gosling"
+   ],
+   "synopsis": "Chassée de Barbieland, Barbie part dans le monde réel pour comprendre ce qui lui arrive.",
+   "part": "prime"
+  },
+  {
+   "id": "c-prisoners",
+   "title": "Prisoners",
+   "year": "2013",
+   "channel": "Canal+",
+   "channelId": "CanalPlus.fr",
+   "bouquet": "canal",
+   "start": "2026-11-22T00:15:00+01:00",
+   "stop": "2026-11-22T01:48:00.000Z",
+   "durationMin": 153,
+   "genres": [
+    "Thriller",
+    "Policier"
+   ],
+   "directors": [
+    "Denis Villeneuve"
+   ],
+   "cast": [
+    "Hugh Jackman",
+    "Jake Gyllenhaal"
+   ],
+   "synopsis": "Quand sa fille disparaît, un père décide de mener sa propre enquête.",
+   "part": "seconde"
+  },
+  {
+   "id": "cf-itfollows",
+   "title": "It Follows",
+   "year": "2014",
+   "channel": "Ciné+ Frisson",
+   "channelId": "CinePlusFrisson.fr",
+   "bouquet": "cinema",
+   "start": "2026-11-21T20:50:00+01:00",
+   "stop": "2026-11-21T21:30:00.000Z",
+   "durationMin": 100,
+   "genres": [
+    "Horreur"
+   ],
+   "directors": [
+    "David Robert Mitchell"
+   ],
+   "cast": [
+    "Maika Monroe"
+   ],
+   "synopsis": "Après une relation, une jeune femme est poursuivie par une présence que personne d'autre ne voit.",
+   "part": "prime"
+  },
+  {
+   "id": "cfa-coco",
+   "title": "Coco",
+   "year": "2017",
+   "channel": "Ciné+ Famiz",
+   "channelId": "CinePlusFamiz.fr",
+   "bouquet": "cinema",
+   "start": "2026-11-21T20:50:00+01:00",
+   "stop": "2026-11-21T21:35:00.000Z",
+   "durationMin": 105,
+   "genres": [
+    "Animation",
+    "Famille"
+   ],
+   "directors": [
+    "Lee Unkrich"
+   ],
+   "cast": [],
+   "synopsis": "Miguel rêve de musique malgré l'interdit familial et se retrouve au pays des morts.",
+   "part": "prime"
+  },
+  {
+   "id": "ccl-rochefort",
+   "title": "Les Demoiselles de Rochefort",
+   "year": "1967",
+   "channel": "Ciné+ Classic",
+   "channelId": "CinePlusClassic.fr",
+   "bouquet": "cinema",
+   "start": "2026-11-21T20:50:00+01:00",
+   "stop": "2026-11-21T21:50:00.000Z",
+   "durationMin": 120,
+   "genres": [
+    "Musical",
+    "Comédie"
+   ],
+   "directors": [
+    "Jacques Demy"
+   ],
+   "cast": [
+    "Catherine Deneuve",
+    "Françoise Dorléac",
+    "Gene Kelly"
+   ],
+   "synopsis": "Deux jumelles rêvent d'amour et de Paris pendant un week-end de fête foraine.",
+   "part": "prime"
+  },
+  {
+   "id": "ce-sunrise",
+   "title": "Before Sunrise",
+   "year": "1995",
+   "channel": "Ciné+ Emotion",
+   "channelId": "CinePlusEmotion.fr",
+   "bouquet": "cinema",
+   "start": "2026-11-21T22:35:00+01:00",
+   "stop": "2026-11-21T23:16:00.000Z",
+   "durationMin": 101,
+   "genres": [
+    "Romance",
+    "Drame"
+   ],
+   "directors": [
+    "Richard Linklater"
+   ],
+   "cast": [
+    "Ethan Hawke",
+    "Julie Delpy"
+   ],
+   "synopsis": "Deux inconnus rencontrés dans un train passent une nuit à parler en arpentant Vienne.",
+   "part": "seconde"
+  }
+ ]
+}

@@ -1,0 +1,68 @@
+# Ce soir
+
+L'app qui te dit quel film regarder ce soir à la télé, sans chercher.
+Elle classe tous les films de la soirée selon tes goûts, et apprend à chaque réaction.
+
+## Lancer
+
+```bash
+npm install
+npm run dev
+```
+
+Par défaut, l'app lit `public/data/tonight.json`, qui contient une **soirée d'exemple**.
+
+## Le vrai programme
+
+`scripts/fetch-tonight.mjs` récupère les films diffusés entre 20h30 et 1h30 (heure de Paris) dans les flux XMLTV gratuits de [xmltvfr.fr](https://xmltvfr.fr), puis écrit `public/data/tonight.json`.
+
+```bash
+npm run fetch:tonight
+# avec affiches, notes et casting :
+TMDB_API_KEY=xxx npm run fetch:tonight
+```
+
+- Clé TMDB gratuite : https://www.themoviedb.org/settings/api
+- Les noms des flux Canal+ et cinéma (`xmltv_canalsat`, `xmltv_cinema`) sont à vérifier sur xmltvfr.fr. Un flux introuvable est ignoré sans bloquer les autres.
+- Le workflow GitHub `.github/workflows/tonight.yml` relance le script chaque jour vers 15h et commite le fichier. Ajoute le secret `TMDB_API_KEY` dans Settings > Secrets > Actions.
+
+## Comment l'app apprend tes goûts
+
+Tout est dans `src/profile.ts`, stocké en local (pas de compte pour l'instant).
+
+1. **Onboarding** : choix des bouquets reçus (TNT, Canal+, Ciné+), puis 12 films connus à noter.
+2. **Traits** : chaque film est décrit par ses genres, réalisateurs, 3 premiers acteurs et sa décennie.
+3. **Signaux** : chaque réaction modifie le poids des traits du film.
+
+   | Réaction | Effet |
+   | --- | --- |
+   | J'aime | +1 |
+   | Déjà vu | +0,8 |
+   | Me rappeler | +0,6 |
+   | Ouvrir la fiche | +0,25 |
+   | Pas pour moi | -1 (et le film est masqué) |
+
+   Les genres comptent plus que le réalisateur, qui compte plus que les acteurs et la décennie.
+4. **Score** : somme des poids des traits du film, plus un petit bonus pour les films bien notés sur TMDB.
+5. **Découverte** : dans le top 5, la 4e place va à un film que l'algo connaît mal, pour éviter la bulle.
+
+L'écran « Mes goûts » montre ce que l'app a compris.
+
+## Structure
+
+```
+scripts/fetch-tonight.mjs   récupération XMLTV + TMDB
+public/data/tonight.json    films du soir (exemple ou réel)
+src/profile.ts              profil, signaux, score, classement
+src/seeds.ts                films de l'onboarding
+src/genres.ts               normalisation des genres
+src/App.tsx                 écran principal
+src/components/             onboarding, fiche film, affiche
+```
+
+## Prochaines étapes
+
+- Brancher le vrai programme (workflow + clé TMDB) et déployer (Coolify, Vercel ou GitHub Pages)
+- Vraies notifications pour « Me rappeler » (PWA + Web Push)
+- Ajouter les plateformes de streaming
+- Compte optionnel pour synchroniser le profil entre appareils
