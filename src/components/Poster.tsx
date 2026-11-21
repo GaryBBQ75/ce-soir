@@ -9,7 +9,11 @@ interface Props {
 
 /** Affiche TMDB si dispo, sinon un bloc de couleur avec le titre. */
 export function Poster({ title, poster, className = '', big }: Props) {
-  if (poster) return <img className={`poster ${className}`} src={poster} alt="" loading="lazy" />;
+  if (poster) {
+    // Visuel téléchargé par le script (chemin relatif) ou lien direct
+    const src = /^https?:/.test(poster) ? poster : `${import.meta.env.BASE_URL}${poster}`;
+    return <img className={`poster ${className}`} src={src} alt="" loading="lazy" />;
+  }
   const { bg, ink } = colorsFor(title);
   return (
     <div className={`poster poster--type ${big ? 'poster--big' : ''} ${className}`} style={{ background: bg, color: ink }} aria-hidden="true">

@@ -7,31 +7,41 @@
  * Variables : TMDB_API_KEY (optionnel)
  */
 import { gunzipSync } from 'node:zlib';
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, mkdirSync, existsSync, rmSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
-const OUT = resolve(ROOT, 'public/data/tonight.json');
+const OUT_DIR = resolve(ROOT, process.env.OUT_DIR ?? 'public');
+const OUT = resolve(OUT_DIR, 'data/tonight.json');
+const POSTERS_DIR = resolve(OUT_DIR, 'posters');
 
 // Ordre important : une chaîne déjà vue dans un bouquet précédent garde ce bouquet.
 // Les noms de fichiers Canal+ et cinéma sont à vérifier sur https://xmltvfr.fr
-// Le dernier flux (toutes les chaînes) est lourd : il sert à récupérer les chaînes hors TNT.
+// Le flux TNT d'abord (ordre des numéros de chaîne), puis le flux complet pour le reste.
 const SOURCES = [
-  { bouquet: 'tnt', url: 'https://xmltvfr.fr/xmltv/xmltv_tnt.xml.gz' },
-  { bouquet: 'canal', url: 'https://xmltvfr.fr/xmltv/xmltv_canalsat.xml.gz' },
-  { bouquet: 'cinema', url: 'https://xmltvfr.fr/xmltv/xmltv_cinema.xml.gz' },
-  { bouquet: 'autres', url: 'https://xmltvfr.fr/xmltv/xmltv.xml.gz' },
+  { source: 'tnt', url: 'https://xmltvfr.fr/xmltv/xmltv_tnt.xml.gz' },
+  { source: 'all', url: 'https://xmltvfr.fr/xmltv/xmltv.xml.gz' },
 ];
 
-/** Les chaînes Canal+ et Ciné+ sont aussi dans le flux TNT : on les range par leur nom. */
-function bouquetOf(id, name, fallback) {
+/**
+ * Range chaque chaîne dans un vrai bouquet français, ou l'écarte (null) :
+ * chaînes étrangères, locales, outre-mer, adultes, décalées (+1), doublons 4K, multiplex sport…
+ */
+function bouquetOf(id, name, source) {
   const s = `${id} ${name}`;
-  if (/cin[ée]\s?\+|cineplus|\bocs\b|tcm|paramount/i.test(s)) return 'cinema';
-  if (/canal\s?\+|canalplus/i.test(s)) return 'canal';
-  return fallback;
-}
+  if (!/\.fr$/i.test(id)) return null;
+  if (/dorcel|penthouse|playboy|hustler|pink ?x|pinktv|man ?x|xxl|brazzers|vivid|adulte/i.test(s)) return null;
+  if (/\+ ?1\b|plus1|4k|uhd|\blive ?\d|360 ?- ?\d|360 \d|max \d|ligue 1\+ ?\d|dazn [3-9]|sport live|24\/24|radio|astrocenter|m6 international|tv5 ?monde|trace|nollywood|africa|afrique|maroc|antilles|guadeloupe|martinique|guyane|r[ée]union|mayotte|polyn[ée]sie|cal[ée]donie|tahiti|wallis|miquelon|1[èe]re|pulaagu|^a\+|canal partag/i.test(s)) return null;
+  if (/france ?3 ?-|france 3 nouvelle|bfm (?!tv|business|grands|2\b)|t[ée]l[ée] ?(grenoble|nantes|bocal|sud|paese)|tv ?(7|8|78|rennes|tours|vend[ée]e|pi|sud|2com)\b|tl7|tebeo|t[ée]b[ée]|vosges|maurienne|lmtv|lyon capitale|via ?mirabelle|vi[aà] ?(atv|mat[ée]l[ée])|w[ée]o|8 mont blanc|7 a limoges|angers|montreuil|canal ?(9|21|32)\b|bip ?tv|union tv|tv monaco|corse|alsace|normandie|marseille|toulon|lyon|nice|lille|littoral|alpes|haute-provence/i.test(s)) return null;
 
+  if (/cin[ée]\s?\+|cineplus|\bocs\b|tcm/i.test(s)) return 'cinema';
+  if (/canal\s?\+|canalplus|plan[eè]te\s?\+|planeteplus|polar\s?\+|com[ée]die\s?\+|seasons|infosport|piwi|t[ée]l[ée]toon|cstar hits/i.test(s)) return 'canal';
+  if (/bein|rmc ?sport(?! ?talk)|eurosport|dazn|ligue 1\+|golf\+|equidia|sport\+|automoto|motorvision/i.test(s)) return 'sport';
+  if (source === 'tnt') return /paris ?premi/i.test(s) ? 'box' : 'tnt';
+  return 'box';
+}
 const TMDB_KEY = process.env.TMDB_API_KEY;
 
 // ---------- Fenêtre "ce soir" en heure de Paris ----------
@@ -123,14 +133,14 @@ function genres(raw) {
   return [...out];
 }
 
-function parseSource(xml, bouquet, win, channels, films, seenChannel) {
+function parseSource(xml, source, win, channels, films, seenChannel) {
   for (const m of xml.matchAll(/<channel\b([^>]*)>([\s\S]*?)<\/channel>/g)) {
     const id = attr(m[1], 'id');
     if (!id) continue;
     const name = tag(m[2], 'display-name') ?? id;
     if (!channels.has(id)) channels.set(id, name);
     // Une chaîne appartient au premier flux où on la voit (TNT avant les autres)
-    if (!seenChannel.has(id)) seenChannel.set(id, { source: bouquet, bouquet: bouquetOf(id, name, bouquet) });
+    if (!seenChannel.has(id)) seenChannel.set(id, { source, bouquet: bouquetOf(id, name, source) });
   }
   for (const m of xml.matchAll(/<programme\b([^>]*)>([\s\S]*?)<\/programme>/g)) {
     const start = parseTime(attr(m[1], 'start'));
@@ -141,9 +151,10 @@ function parseSource(xml, bouquet, win, channels, films, seenChannel) {
     if (!kind) continue;
     const channelId = attr(m[1], 'channel');
     if (!channelId) continue;
-    if (!seenChannel.has(channelId)) seenChannel.set(channelId, { source: bouquet, bouquet: bouquetOf(channelId, channelId, bouquet) });
+    if (!seenChannel.has(channelId)) seenChannel.set(channelId, { source, bouquet: bouquetOf(channelId, channelId, source) });
     const ch = seenChannel.get(channelId);
-    if (ch.source !== bouquet) continue; // déjà lue dans un flux précédent
+    if (!ch.bouquet || ch.source !== source) continue; // chaîne écartée, ou déjà lue dans un flux précédent
+    if (/adulte|charme|[ée]rotique|\bx\b/i.test(cats.join(' '))) continue;
 
     const stop = parseTime(attr(m[1], 'stop'));
     if (Number.isFinite(stop) && (stop - start) / 60000 < MIN_DURATION) continue;
@@ -255,7 +266,7 @@ const seenChannel = new Map();
 for (const src of SOURCES) {
   try {
     console.log(`Lecture ${src.url}`);
-    parseSource(await fetchXml(src.url), src.bouquet, win, channels, films, seenChannel);
+    parseSource(await fetchXml(src.url), src.source, win, channels, films, seenChannel);
   } catch (e) {
     console.warn(`Source ignorée : ${e.message}`);
   }
@@ -276,6 +287,57 @@ if (TMDB_KEY) {
   list = out;
 }
 
+// ---------- Visuels : téléchargés et redimensionnés, servis par l'app elle-même ----------
+
+async function downloadPosters(list) {
+  let sharp;
+  try {
+    sharp = (await import('sharp')).default;
+  } catch {
+    console.warn('sharp absent : visuels laissés en lien direct');
+    return list;
+  }
+  if (existsSync(POSTERS_DIR)) rmSync(POSTERS_DIR, { recursive: true });
+  mkdirSync(POSTERS_DIR, { recursive: true });
+  const cache = new Map();
+  let ok = 0;
+  const queue = [...list];
+  const worker = async () => {
+    while (queue.length) {
+      const f = queue.shift();
+      if (!f.poster || !/^https?:/.test(f.poster)) continue;
+      const name = `${createHash('sha1').update(f.poster).digest('hex').slice(0, 16)}.webp`;
+      if (!cache.has(name)) {
+        cache.set(
+          name,
+          (async () => {
+            const ctrl = new AbortController();
+            const t = setTimeout(() => ctrl.abort(), 10_000);
+            try {
+              const res = await fetch(f.poster, { signal: ctrl.signal });
+              if (!res.ok) throw new Error(`HTTP ${res.status}`);
+              const buf = Buffer.from(await res.arrayBuffer());
+              await sharp(buf).resize({ width: 400, withoutEnlargement: true }).webp({ quality: 72 }).toFile(resolve(POSTERS_DIR, name));
+              ok++;
+              return true;
+            } catch {
+              return false;
+            } finally {
+              clearTimeout(t);
+            }
+          })(),
+        );
+      }
+      f.poster = (await cache.get(name)) ? `posters/${name}` : undefined;
+    }
+  };
+  await Promise.all(Array.from({ length: 8 }, worker));
+  console.log(`${ok} visuels téléchargés`);
+  return list;
+}
+
+list = await downloadPosters(list);
+
 mkdirSync(dirname(OUT), { recursive: true });
 writeFileSync(
   OUT,
@@ -284,7 +346,10 @@ writeFileSync(
       date: win.day,
       generatedAt: new Date().toISOString(),
       source: 'xmltv',
-      channels: [...seenChannel.entries()].map(([id, c]) => ({ id, name: channels.get(id) ?? id, bouquet: c.bouquet })),
+      // Les "chaînes des box" sont nombreuses : on ne liste que celles qui ont un programme ce soir
+      channels: [...seenChannel.entries()]
+        .filter(([id, c]) => c.bouquet && (c.bouquet !== 'box' || list.some((f) => f.channelId === id)))
+        .map(([id, c]) => ({ id, name: decode(channels.get(id) ?? id), bouquet: c.bouquet })),
       films: list,
     },
     null,

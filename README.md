@@ -14,27 +14,28 @@ Par défaut, l'app lit `public/data/tonight.json`, qui contient une **soirée d'
 
 ## Le vrai programme
 
-`scripts/fetch-tonight.mjs` récupère les programmes diffusés entre 20h30 et 1h30 (heure de Paris) dans les flux XMLTV gratuits de [xmltvfr.fr](https://xmltvfr.fr), puis écrit `public/data/tonight.json`.
+`scripts/fetch-tonight.mjs` récupère les programmes diffusés entre 20h30 et 1h30 (heure de Paris) dans les flux XMLTV gratuits de [xmltvfr.fr](https://xmltvfr.fr) (flux TNT + flux complet), télécharge les visuels et écrit `tonight.json`.
 
 ```bash
-npm run fetch:tonight
-# avec affiches, notes et casting :
-TMDB_API_KEY=xxx npm run fetch:tonight
+npm run fetch:tonight                 # écrit dans public/
+OUT_DIR=dist npm run fetch:tonight    # écrit dans dist/ après un build
+TMDB_API_KEY=xxx npm run fetch:tonight  # + notes et casting TMDB (optionnel)
 ```
 
-- Types gardés : film (et téléfilm), série, doc et magazine, divertissement (jeux, humour, spectacles, talk-shows), sport. Journaux, météo, jeunesse, téléachat et programmes de moins de 20 min sont ignorés. Les épisodes de série enchaînés sont regroupés.
-- TMDB complète les films (affiche, note, casting) et les séries (affiche, note).
-- Clé TMDB gratuite : https://www.themoviedb.org/settings/api
-- Les noms des flux Canal+ et cinéma (`xmltv_canalsat`, `xmltv_cinema`) sont à vérifier sur xmltvfr.fr. Un flux introuvable est ignoré sans bloquer les autres.
-- Le workflow GitHub `.github/workflows/tonight.yml` relance le script chaque jour vers 15h (et à chaque push), commite le fichier, puis met l'app en ligne sur GitHub Pages.
+- **Bouquets** : TNT gratuite, Canal+ (et Planète+, Polar+, Comédie+…), Ciné+ OCS, Sport (beIN, RMC Sport, Eurosport, DAZN…), Chaînes des box. Sont écartées : chaînes étrangères, locales, outre-mer, adultes, décalées (+1), doublons 4K et multiplex sport.
+- **Types gardés** : film (et téléfilm), série, doc et magazine, divertissement, sport. Journaux, météo, jeunesse, téléachat et programmes de moins de 20 min sont ignorés. Les épisodes de série enchaînés sont regroupés.
+- **Visuels** : téléchargés depuis le flux, redimensionnés en WebP 400 px (sharp) et servis par l'app.
+- **TMDB** (optionnel) : notes et casting des films, affiches des séries. Clé gratuite sur https://www.themoviedb.org/settings/api
 
-### Mise en ligne (une seule fois)
+### Mise à jour automatique et mise en ligne
 
-1. Settings > Pages > Source : **GitHub Actions**
-2. Settings > Secrets and variables > Actions : ajoute `TMDB_API_KEY`
-3. Actions > « Programme du soir et mise en ligne » > Run workflow
+Le workflow `.github/workflows/tonight.yml` tourne chaque jour vers 15h et 19h, et à chaque push :
+1. build de l'app ;
+2. récupération du programme et des visuels dans `dist/` ;
+3. copie des données sur la branche `data` (un seul commit, écrasé chaque jour) ;
+4. mise en ligne sur GitHub Pages.
 
-L'app est ensuite sur `https://<compte>.github.io/ce-soir/`, avec les vraies affiches.
+À faire une fois : Settings > Pages > Source : **GitHub Actions** (et le secret `TMDB_API_KEY` si tu veux TMDB).
 
 ## Comment l'app apprend tes goûts
 

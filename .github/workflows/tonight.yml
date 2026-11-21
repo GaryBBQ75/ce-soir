@@ -2,8 +2,9 @@ name: Programme du soir et mise en ligne
 
 on:
   schedule:
-    # Tous les jours vers 15h (Paris) : le programme de la soirée est stable
+    # Deux passages : 15h pour la soirée, 19h pour les derniers changements (heure de Paris)
     - cron: '7 14 * * *'
+    - cron: '7 18 * * *'
   push:
     branches: [main]
   workflow_dispatch:
@@ -26,26 +27,38 @@ jobs:
         with:
           node-version: 20
           cache: npm
-
-      - name: Récupérer les films du soir
-        id: fetch
-        continue-on-error: true # en cas d'échec, on garde le dernier tonight.json
-        run: node scripts/fetch-tonight.mjs
-        env:
-          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
-
-      - name: Enregistrer tonight.json
-        if: steps.fetch.outcome == 'success'
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add public/data/tonight.json
-          git diff --cached --quiet || (git commit -m "Programme du soir $(date +%F)" && git push)
+      - run: npm ci
 
       - name: Construire l'app
+        run: npx vite build --base=/${{ github.event.repository.name }}/
+
+      # Programme + visuels écrits directement dans dist/
+      - name: Récupérer le programme du soir
+        id: fetch
+        continue-on-error: true
+        run: node scripts/fetch-tonight.mjs
+        env:
+          OUT_DIR: dist
+          TMDB_API_KEY: ${{ secrets.TMDB_API_KEY }}
+
+      # Les données du jour vivent sur une branche "data" (un seul commit, écrasé chaque jour)
+      - name: Publier les données sur la branche data
+        if: steps.fetch.outcome == 'success'
         run: |
-          npm ci
-          npx vite build --base=/${{ github.event.repository.name }}/
+          mkdir -p /tmp/data && cp -r dist/data dist/posters /tmp/data/ 2>/dev/null || true
+          cd /tmp/data
+          git init -q -b data
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -q -m "Programme du soir $(date +%F)"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" data
+
+      # Si la récupération échoue, on garde les données de la veille
+      - name: Reprendre les dernières données
+        if: steps.fetch.outcome != 'success'
+        run: |
+          git fetch --depth=1 origin data && git --work-tree=dist checkout origin/data -- . || echo "Pas de données précédentes"
 
       - uses: actions/upload-pages-artifact@v3
         with:
