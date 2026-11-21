@@ -1,6 +1,7 @@
 import { BOUQUETS, type Bouquet, type Channel } from '../types';
 import { channelOn, topTraits, type Profile } from '../profile';
 import { useState } from 'react';
+import { Sheet } from './Sheet';
 import { askPermission, notificationsSupported } from '../notify';
 
 interface Props {
@@ -35,13 +36,8 @@ export function Settings({ profile, channels, onChange, onClose }: Props) {
   };
 
   return (
-    <div className="sheet-backdrop" onClick={onClose}>
-      <div className="sheet sheet--tall" role="dialog" aria-label="Réglages" onClick={(e) => e.stopPropagation()}>
-        <div className="sheet__handle" />
-        <div className="sheet__bar">
-          <h2 className="sheet__title">Mes chaînes</h2>
-          <button className="btn btn--ghost btn--sm" onClick={onClose}>OK</button>
-        </div>
+    <Sheet label="Réglages" title="Réglages" onClose={onClose}>
+        <h2 className="sheet__title">Mes chaînes</h2>
         <p className="muted small">Active un bouquet entier, puis retire ou ajoute des chaînes une par une.</p>
 
         {BOUQUETS.map((b) => {
@@ -163,7 +159,6 @@ export function Settings({ profile, channels, onChange, onClose }: Props) {
             {resetArmed ? 'Confirmer : effacer mes goûts ?' : 'Effacer mes goûts'}
           </button>
         </section>
-      </div>
-    </div>
+    </Sheet>
   );
 }

@@ -1,6 +1,7 @@
 import { kindLabel, type Film, type Signal } from '../types';
 import { showKey, type Profile } from '../profile';
 import { Poster } from './Poster';
+import { Sheet } from './Sheet';
 import { Progress } from './Progress';
 import { durationLabel, hhmm, isOn } from '../utils';
 import { liveLink } from '../links';
@@ -30,9 +31,7 @@ export function FilmSheet({ film, films, now, profile, onSignal, onHide, onClose
   const others = films.filter((f) => f.id !== film.id && showKey(f.title) === key && Date.parse(f.start) > now).slice(0, 4);
 
   return (
-    <div className="sheet-backdrop" onClick={onClose}>
-      <div className="sheet" role="dialog" aria-label={film.title} onClick={(e) => e.stopPropagation()}>
-        <div className="sheet__handle" />
+    <Sheet label={film.title} onClose={onClose}>
         <div className="sheet__head">
           <Poster title={film.title} poster={film.poster} className="sheet__poster" />
           <div className="stack-sm">
@@ -109,7 +108,6 @@ export function FilmSheet({ film, films, now, profile, onSignal, onHide, onClose
             <button className="btn btn--ghost btn--sm" onClick={onHide}>Pas pour moi</button>
           </div>
         )}
-      </div>
-    </div>
+    </Sheet>
   );
 }
