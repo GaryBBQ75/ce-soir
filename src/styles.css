@@ -206,22 +206,31 @@ button { font: inherit; color: inherit; }
 .channel__move button { width: 34px; height: 26px; border: 1px solid var(--line); border-radius: 8px; background: none; color: var(--text); cursor: pointer; }
 
 /* Grille horaire (test) */
-.grid { overflow: auto; margin: 0 -20px; max-height: 70dvh; border-top: 1px solid var(--surface-2); -webkit-overflow-scrolling: touch; }
+.grid { overflow: auto; margin: 0 -20px; max-height: 72dvh; border-top: 1px solid var(--surface-2); -webkit-overflow-scrolling: touch; }
 .grid__inner { position: relative; }
 .grid__head { position: sticky; top: 0; z-index: 3; display: flex; height: 30px; background: var(--bg); border-bottom: 1px solid var(--surface-2); }
 .grid__corner { position: sticky; left: 0; z-index: 4; width: 64px; flex: none; background: var(--bg); }
 .grid__ticks { position: relative; }
 .grid__tick { position: absolute; top: 8px; font-size: 11px; color: var(--muted); transform: translateX(-50%); font-variant-numeric: tabular-nums; }
-.grid__row { display: flex; height: 58px; border-bottom: 1px solid var(--surface-2); }
+.grid__row { display: flex; height: 84px; border-bottom: 1px solid var(--surface-2); }
 .grid__logo { position: sticky; left: 0; z-index: 2; width: 64px; flex: none; display: flex; align-items: center; justify-content: center; background: #fff; border-right: 1px solid var(--surface-2); }
 .grid__logo.is-dark { background: #2a2a30; }
-.grid__logo img { width: 44px; height: 32px; object-fit: contain; }
+.grid__logo img { width: 46px; height: 36px; object-fit: contain; }
 .grid__logo span { color: #111; font-size: 11px; font-weight: 700; }
 .grid__track { position: relative; }
-.grid__block { position: absolute; top: 4px; bottom: 4px; display: flex; flex-direction: column; justify-content: center; gap: 2px; padding: 0 8px; border: 0; border-radius: 8px; background: var(--surface); color: var(--text); text-align: left; overflow: hidden; cursor: pointer; }
-.grid__block.is-live { background: var(--surface-2); }
-.grid__block.is-followed { box-shadow: inset 0 0 0 2px var(--accent); }
-.grid__block.is-dim { opacity: 0.3; }
-.grid__title { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.grid__block { position: absolute; top: 4px; bottom: 4px; display: flex; align-items: flex-end; padding: 0; border: 0; border-radius: 10px; background: var(--surface) center / cover no-repeat; color: #fff; text-align: left; overflow: hidden; cursor: pointer; }
+.grid__block.is-plain { color: var(--text); align-items: center; }
+.grid__block.is-plain.is-live { background-color: var(--surface-2); }
+/* Voile sombre en bas pour lire le titre sur l'image */
+.grid__text { position: relative; width: 100%; display: flex; flex-direction: column; gap: 1px; padding: 18px 8px 6px; }
+.grid__block:not(.is-plain) .grid__text { background: linear-gradient(to top, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.55) 60%, transparent); }
+.grid__block.is-plain .grid__text { padding: 0 8px; }
+.grid__block.is-live:not(.is-plain) { box-shadow: inset 0 -3px 0 #ff5a4f; }
+.grid__block .grid__time { display: inline-flex; align-items: center; color: rgba(255, 255, 255, 0.8); }
+.grid__block.is-plain .grid__time { color: var(--muted); }
+.grid__block .live-dot { width: 6px; height: 6px; margin-right: 4px; }
+.grid__block.is-followed { box-shadow: inset 0 0 0 3px var(--accent); }
+.grid__block.is-dim { opacity: 0.25; filter: grayscale(1); }
+.grid__title { font-size: 13px; font-weight: 700; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .grid__time { font-size: 11px; color: var(--muted); }
 .grid__now { position: absolute; top: 0; bottom: 0; width: 2px; background: #ff5a4f; z-index: 1; pointer-events: none; }

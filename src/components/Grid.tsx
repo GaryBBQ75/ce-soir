@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { Channel, Film, Kind } from '../types';
 import { isFollowed, type Profile } from '../profile';
-import { assetUrl, hhmm, stopOf } from '../utils';
+import { assetUrl, colorsFor, hhmm, stopOf } from '../utils';
 
 interface Props {
   profile: Profile;
@@ -58,16 +58,27 @@ export function Grid({ profile, channels, films, at, now, kind, onOpen }: Props)
                   const dim = kind !== 'all' && f.kind !== kind;
                   const followed = isFollowed(profile, f);
                   const live = Date.parse(f.start) <= now && now < stopOf(f);
+                  // Visuel du programme en fond ; sinon un aplat de couleur (sauf journaux, météo…)
+                  const bg = f.poster
+                    ? { backgroundImage: `url("${assetUrl(f.poster)}")` }
+                    : f.kind !== 'autre'
+                      ? { backgroundColor: colorsFor(f.title).bg }
+                      : undefined;
                   return (
                     <button
                       key={f.id}
-                      className={`grid__block ${dim ? 'is-dim' : ''} ${followed ? 'is-followed' : ''} ${live ? 'is-live' : ''}`}
-                      style={{ left, width: w }}
+                      className={`grid__block ${f.poster ? 'has-poster' : ''} ${f.kind === 'autre' ? 'is-plain' : ''} ${dim ? 'is-dim' : ''} ${followed ? 'is-followed' : ''} ${live ? 'is-live' : ''}`}
+                      style={{ left, width: w, ...bg }}
                       onClick={() => onOpen(f)}
                       title={`${hhmm(f.start)} ${f.title}`}
                     >
-                      <span className="grid__title">{f.title}</span>
-                      <span className="grid__time">{hhmm(f.start)}</span>
+                      <span className="grid__text">
+                        <span className="grid__title">{f.title}</span>
+                        <span className="grid__time">
+                          {live && <span className="live-dot" aria-hidden="true" />}
+                          {hhmm(f.start)}
+                        </span>
+                      </span>
                     </button>
                   );
                 })}
