@@ -1,5 +1,6 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { KINDS, type Channel, type Film, type Kind } from '../types';
+import type { Channel, Film, Kind } from '../types';
+import { KindFilter, matchesFilter } from './KindFilter';
 import { channelOn, isFollowed, score, showKey, type Profile } from '../profile';
 import { hhmm, isOn, stopOf } from '../utils';
 import { ChannelLogo } from './ChannelLogo';
@@ -36,6 +37,7 @@ export function Channels({ profile, channels, films, at, now, onOpen, onChange }
   const [view, setView] = useState<View>('list');
   const [sort, setSort] = useState<Sort>('mine');
   const [kind, setKind] = useState<Kind | 'all'>('all');
+  const [genre, setGenre] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [reorder, setReorder] = useState(false);
   // La grille occupe tout l'espace restant de l'écran : seule la grille défile
@@ -72,7 +74,7 @@ export function Channels({ profile, channels, films, at, now, onOpen, onChange }
       const list = byChannel.get(c.id) ?? [];
       let current = list.find((f) => isOn(f, at)) ?? list.find((f) => Date.parse(f.start) > at);
       if (kind !== 'all') {
-        current = list.find((f) => f.kind === kind && stopOf(f) > at && Date.parse(f.start) < at + 3 * 3600_000);
+        current = list.find((f) => matchesFilter(f, kind, genre) && stopOf(f) > at && Date.parse(f.start) < at + 3 * 3600_000);
       }
       const cur = current;
       const next = cur ? list.find((f) => Date.parse(f.start) >= stopOf(cur) - 60_000 && f.id !== cur.id) : undefined;
@@ -165,17 +167,17 @@ export function Channels({ profile, channels, films, at, now, onOpen, onChange }
             )}
           </div>
 
-          <div className="filters" role="group" aria-label="Type de programme">
-            {[{ id: 'all' as const, plural: 'Tout' }, ...KINDS].map((k) => (
-              <button key={k.id} aria-pressed={kind === k.id} className={`chip ${kind === k.id ? 'is-on' : ''}`} onClick={() => setKind(k.id)}>
-                {k.plural}
-              </button>
-            ))}
-          </div>
+          <KindFilter
+            films={films.filter((f) => stopOf(f) > at && Date.parse(f.start) < at + 3 * 3600_000 && ordered.some((c) => c.id === f.channelId))}
+            kind={kind}
+            genre={genre}
+            onKind={setKind}
+            onGenre={setGenre}
+          />
 
           {view === 'grid' ? (
             <div ref={gridWrap}>
-              <Grid profile={profile} channels={ordered} films={films} at={at} now={now} kind={kind} height={gridH} onOpen={onOpen} />
+              <Grid profile={profile} channels={ordered} films={films} at={at} now={now} kind={kind} genre={genre} height={gridH} onOpen={onOpen} />
             </div>
           ) : (
             <>

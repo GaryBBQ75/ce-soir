@@ -23,7 +23,7 @@ TMDB_API_KEY=xxx npm run fetch:tonight  # + notes et casting TMDB (optionnel)
 ```
 
 - **Bouquets et thèmes** : TNT gratuite, Canal+, puis les chaînes des box rangées par thème : Cinéma, Sport, Découverte, Séries & divertissement, Jeunesse, Musique, Info, Maison & loisirs, Autres. Le classement se fait par nom de chaîne dans `bouquetOf()`. Sont écartées : chaînes étrangères, locales, outre-mer, adultes, décalées (+1), doublons 4K et multiplex sport.
-- **Types** : film (et téléfilm), série, doc et magazine, divertissement, sport, et « autre » (journal, météo, jeunesse…). Les « autre » et les programmes de moins de 20 min apparaissent dans la grille des chaînes mais ne sont jamais suggérés. Les programmes enchaînés avec le même titre sont regroupés.
+- **Catégories** : Films (cinéma et téléfilms), Séries, Docs & magazines, Divertissement, Spectacles & musique, Sport, Jeunesse, Info & débats (pas suggérée par défaut), et « autre » (météo, téléachat…) visible seulement dans la grille. Chaque programme a aussi des **sous-genres** (Comédie, Policier… / Foot, Rugby… / Nature, Histoire…) qui servent de 2e filtre et nourrissent l'algo. Les programmes enchaînés avec le même titre sont regroupés.
 - **Logos des chaînes** : téléchargés et redimensionnés comme les visuels.
 - **Visuels** : téléchargés depuis le flux, redimensionnés en WebP 400 px (sharp) et servis par l'app.
 - **TMDB** (optionnel) : notes et casting des films, affiches des séries. Clé gratuite sur https://www.themoviedb.org/settings/api

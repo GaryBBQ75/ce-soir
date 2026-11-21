@@ -8,6 +8,7 @@ import { Poster } from './components/Poster';
 import { Progress } from './components/Progress';
 import { Channels } from './components/Channels';
 import { ChannelLogo } from './components/ChannelLogo';
+import { KindFilter, matchesFilter } from './components/KindFilter';
 import { durationLabel, hhmm, isOn, loadTonight, refTime, stopOf, todayLabel, type When } from './utils';
 
 type Tab = 'pourtoi' | 'chaines';
@@ -20,6 +21,8 @@ const WHEN: { id: When; label: string }[] = [
 
 /** Un programme assez long et assez "regardable" pour être suggéré */
 const suggestable = (f: Film) => f.kind !== 'autre' && (f.durationMin ?? 60) >= 20;
+/** Types proposés par défaut (l'info seulement si on la demande) */
+const defaultKind = (f: Film) => KINDS.find((k) => k.id === f.kind)?.suggest ?? false;
 
 export default function App() {
   const [profile, setProfile] = useState<Profile>(loadProfile);
@@ -28,6 +31,7 @@ export default function App() {
   const [tab, setTab] = useState<Tab>('pourtoi');
   const [when, setWhen] = useState<When>('now');
   const [kind, setKind] = useState<Kind | 'all'>('all');
+  const [genre, setGenre] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [settings, setSettings] = useState(false);
   const [now, setNow] = useState(() => Date.now());
@@ -66,19 +70,21 @@ export default function App() {
     (f) => isFollowed(profile, f) && stopOf(f) > now && Date.parse(f.start) - now < 15 * 60_000,
   );
 
-  const candidates = useMemo(() => {
+  // Programmes du moment choisi (avant le filtre de catégorie, pour proposer les bonnes catégories)
+  const inSlot = useMemo(() => {
     const all = (tonight?.films ?? []).filter(suggestable).filter((f) => stopOf(f) > now);
-    const inSlot = all.filter((f) =>
-      when === 'now' ? isOn(f, now) || Date.parse(f.start) - now < 30 * 60_000 : f.part === when,
-    );
-    return inSlot.filter((f) => kind === 'all' || f.kind === kind);
-  }, [tonight, when, kind, now]);
+    return all.filter((f) => (when === 'now' ? isOn(f, now) || Date.parse(f.start) - now < 30 * 60_000 : f.part === when));
+  }, [tonight, when, now]);
+
+  const candidates = useMemo(
+    () => inSlot.filter((f) => (kind === 'all' ? defaultKind(f) : matchesFilter(f, kind, genre))),
+    [inSlot, kind, genre],
+  );
 
   const ranked = useMemo(() => rank(profile, candidates, seed), [profile, candidates, seed]);
   const top = ranked.slice(0, 5);
   const rest = ranked.slice(5);
   const restKinds = KINDS.filter((k) => rest.some((r) => r.film.kind === k.id));
-  const kindsTonight = KINDS.filter((k) => tonight?.films.some((f) => f.kind === k.id));
 
   const openFilm = tonight?.films.find((f) => f.id === openId) ?? null;
   const channelById = useMemo(() => new Map((tonight?.channels ?? []).map((c) => [c.id, c])), [tonight]);
@@ -183,13 +189,7 @@ export default function App() {
 
       {tab === 'pourtoi' && tonight && (
         <>
-          <div className="filters" role="group" aria-label="Type de programme">
-            {[{ id: 'all' as const, plural: 'Tout' }, ...kindsTonight].map((k) => (
-              <button key={k.id} aria-pressed={kind === k.id} className={`chip ${kind === k.id ? 'is-on' : ''}`} onClick={() => setKind(k.id)}>
-                {k.plural}
-              </button>
-            ))}
-          </div>
+          <KindFilter films={inSlot} kind={kind} genre={genre} onKind={setKind} onGenre={setGenre} />
 
           {ranked.length === 0 && (
             <div className="notice">

@@ -113,12 +113,15 @@ async function fetchXml(url) {
 function kindOf(categories) {
   const c = categories.join(' | ').toLowerCase();
   if (/ind[ée]termin|fin des programmes/.test(c)) return null;
+  if (/jeunesse|dessin anim|enfant|kids|cartoon/.test(c)) return 'jeunesse';
   if (/\bfilm\b|movie|cin[ée]ma|t[ée]l[ée]film/.test(c)) return 'film';
-  if (/journal|information|m[ée]t[ée]o|loterie|jeunesse|dessin anim|t[ée]l[ée]achat|bulletin|religi/.test(c)) return 'autre';
+  if (/journal|information|actualit|d[ée]bat|politique|bulletin|\binfo\b/.test(c)) return 'info';
+  if (/m[ée]t[ée]o|loterie|t[ée]l[ée]achat|religi|programme court/.test(c)) return 'autre';
   if (/s[ée]rie|feuilleton|sitcom/.test(c)) return 'serie';
-  if (/sport|football|rugby|tennis|cyclisme|basket|formule|handball|boxe|golf/.test(c)) return 'sport';
-  if (/documentaire|magazine|reportage|d[ée]couverte|histoire|science|nature|voyage/.test(c)) return 'doc';
-  if (/divertissement|jeu|r[ée]alit[ée]|vari[ée]t[ée]|humour|spectacle|concert|th[ée][âa]tre|talk|musique|[ée]mission/.test(c)) return 'divertissement';
+  if (/sport|football|rugby|tennis|cyclisme|basket|formule|handball|boxe|golf|ski|athl[ée]tisme|moto|auto|[ée]quitation|hippisme|natation|volley|combat|mma|catch/.test(c)) return 'sport';
+  if (/spectacle|concert|humour|one.?man|th[ée][âa]tre|op[ée]ra|ballet|danse|cirque|musique classique|festival/.test(c)) return 'spectacle';
+  if (/documentaire|magazine|reportage|d[ée]couverte|histoire|science|nature|voyage|soci[ée]t[ée]/.test(c)) return 'doc';
+  if (/divertissement|\bjeux?\b|r[ée]alit[ée]|vari[ée]t[ée]|talk|musique|clip|[ée]mission/.test(c)) return 'divertissement';
   // "autre" : gardé pour la grille des chaînes, jamais proposé en suggestion
   return 'autre';
 }
@@ -129,13 +132,29 @@ function slug(s) {
 }
 
 // Genres : même logique que src/genres.ts
+// Sous-genres : genres de film, sports, thèmes de docs. Même logique que src/genres.ts
 const GENRE_MAP = [
-  [/com[ée]die|comedy/i, 'Comédie'], [/action/i, 'Action'], [/aventure|adventure/i, 'Aventure'],
-  [/anim/i, 'Animation'], [/famil|jeunesse|enfant/i, 'Famille'], [/horreur|horror|[ée]pouvante/i, 'Horreur'],
-  [/thriller|suspense|myst[eè]re/i, 'Thriller'], [/policier|crime|polar|gangster/i, 'Policier'],
-  [/science|sci-?fi/i, 'Science-fiction'], [/fantas/i, 'Fantastique'], [/romance|romanti|sentiment/i, 'Romance'],
-  [/musical|musique|music/i, 'Musical'], [/western/i, 'Western'], [/guerre|war/i, 'Guerre'],
-  [/histo|biopic|biograph/i, 'Histoire'], [/documentaire|documentary/i, 'Documentaire'], [/drame|drama|dramatique/i, 'Drame'],
+  // Films et séries
+  [/com[ée]die|comedy/i, 'Comédie'], [/\baction\b/i, 'Action'], [/aventure|adventure/i, 'Aventure'],
+  [/animation|anim[ée]/i, 'Animation'], [/famil/i, 'Famille'], [/horreur|horror|[ée]pouvante/i, 'Horreur'],
+  [/thriller|suspense|myst[eè]re/i, 'Thriller'], [/policier|crime|polar|gangster|criminel|enqu[êe]te/i, 'Policier'],
+  [/science.?fiction|sci-?fi|anticipation/i, 'Science-fiction'], [/fantas/i, 'Fantastique'], [/romance|romanti|sentiment/i, 'Romance'],
+  [/com[ée]die musicale|musical/i, 'Musical'], [/western/i, 'Western'], [/guerre|\bwar\b/i, 'Guerre'],
+  [/histo|biopic|biograph/i, 'Histoire'], [/drame|drama|dramatique/i, 'Drame'],
+  // Sports
+  [/football|foot\b|ligue 1|soccer/i, 'Foot'], [/rugby/i, 'Rugby'], [/tennis/i, 'Tennis'], [/basket/i, 'Basket'],
+  [/handball/i, 'Handball'], [/cyclisme|v[ée]lo/i, 'Cyclisme'], [/formule|f1\b|auto|moto|rallye/i, 'Auto-moto'],
+  [/golf/i, 'Golf'], [/boxe|mma|combat|catch|arts martiaux/i, 'Combat'], [/ski|biathlon|sports? d'hiver|patinage/i, 'Sports d\'hiver'],
+  [/[ée]quitation|hippisme|turf|course hippique/i, 'Hippisme'], [/athl[ée]tisme/i, 'Athlétisme'], [/voile|nautisme|surf/i, 'Glisse et voile'],
+  // Docs et magazines
+  [/nature|animal|animaux|faune|environnement|[ée]cologie/i, 'Nature'], [/voyage|d[ée]couverte|g[ée]ographie/i, 'Voyage'],
+  [/science(?!.?fiction)|technolog|sant[ée]|m[ée]decine/i, 'Sciences'], [/soci[ée]t[ée]|reportage/i, 'Société'],
+  [/cuisine|gastronom/i, 'Cuisine'], [/maison|d[ée]co|jardin/i, 'Maison'], [/art|culture|cin[ée]ma/i, 'Culture'],
+  // Spectacles
+  [/humour|one.?man|stand.?up/i, 'Humour'], [/concert|musique|rock|pop|rap|jazz/i, 'Concert'], [/th[ée][âa]tre/i, 'Théâtre'],
+  [/op[ée]ra|classique|ballet|danse/i, 'Classique et danse'],
+  // Divertissement
+  [/\bjeux?\b/i, 'Jeux'], [/r[ée]alit[ée]/i, 'Télé-réalité'], [/talk|plateau/i, 'Talk-show'], [/vari[ée]t[ée]/i, 'Variétés'],
 ];
 function genres(raw) {
   const out = new Set();

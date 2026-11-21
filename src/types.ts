@@ -19,14 +19,17 @@ export const BOUQUETS: { id: Bouquet; label: string; hint: string }[] = [
 ];
 
 /** 'autre' : journal, météo, jeunesse… visibles dans la grille des chaînes, jamais suggérés */
-export type Kind = 'film' | 'serie' | 'doc' | 'divertissement' | 'sport' | 'autre';
+export type Kind = 'film' | 'serie' | 'doc' | 'divertissement' | 'spectacle' | 'sport' | 'jeunesse' | 'info' | 'autre';
 
-export const KINDS: { id: Kind; label: string; plural: string }[] = [
-  { id: 'film', label: 'Film', plural: 'Films' },
-  { id: 'serie', label: 'Série', plural: 'Séries' },
-  { id: 'doc', label: 'Doc', plural: 'Docs & magazines' },
-  { id: 'divertissement', label: 'Divertissement', plural: 'Divertissement' },
-  { id: 'sport', label: 'Sport', plural: 'Sport' },
+export const KINDS: { id: Kind; label: string; plural: string; /** proposé dans les suggestions par défaut */ suggest: boolean }[] = [
+  { id: 'film', label: 'Film', plural: 'Films', suggest: true },
+  { id: 'serie', label: 'Série', plural: 'Séries', suggest: true },
+  { id: 'doc', label: 'Doc', plural: 'Docs & magazines', suggest: true },
+  { id: 'divertissement', label: 'Divertissement', plural: 'Divertissement', suggest: true },
+  { id: 'spectacle', label: 'Spectacle', plural: 'Spectacles & musique', suggest: true },
+  { id: 'sport', label: 'Sport', plural: 'Sport', suggest: true },
+  { id: 'jeunesse', label: 'Jeunesse', plural: 'Jeunesse', suggest: true },
+  { id: 'info', label: 'Info', plural: 'Info & débats', suggest: false },
 ];
 
 export const kindLabel = (k: Kind) => KINDS.find((x) => x.id === k)?.label ?? 'Programme';

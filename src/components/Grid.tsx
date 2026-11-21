@@ -3,6 +3,7 @@ import type { Channel, Film, Kind } from '../types';
 import { isFollowed, type Profile } from '../profile';
 import { assetUrl, hhmm, stopOf } from '../utils';
 import { ChannelLogo } from './ChannelLogo';
+import { matchesFilter } from './KindFilter';
 
 interface Props {
   profile: Profile;
@@ -11,6 +12,7 @@ interface Props {
   at: number;
   now: number;
   kind: Kind | 'all';
+  genre: string | null;
   /** Hauteur fixe : seule la grille défile, pas la page */
   height: number;
   onOpen: (f: Film) => void;
@@ -21,7 +23,7 @@ const HOURS = 7;
 const ROW = 76;
 
 /** Grille horaire (test) : chaînes en lignes, la soirée défile de gauche à droite. */
-export function Grid({ profile, channels, films, at, now, kind, height, onOpen }: Props) {
+export function Grid({ profile, channels, films, at, now, kind, genre, height, onOpen }: Props) {
   const scroller = useRef<HTMLDivElement>(null);
   // Début de la grille : la demi-heure pleine 1 h avant l'heure choisie
   const t0 = Math.floor((at - 60 * 60_000) / (30 * 60_000)) * 30 * 60_000;
@@ -36,7 +38,7 @@ export function Grid({ profile, channels, films, at, now, kind, height, onOpen }
 
   const visible = (f: Film) => stopOf(f) > t0 && Date.parse(f.start) < t1;
   // Avec un filtre (ex. Films) : seulement les chaînes qui en diffusent
-  const rows = channels.filter((c) => kind === 'all' || films.some((f) => f.channelId === c.id && f.kind === kind && visible(f)));
+  const rows = channels.filter((c) => kind === 'all' || films.some((f) => f.channelId === c.id && matchesFilter(f, kind, genre) && visible(f)));
 
   const ticks: number[] = [];
   for (let t = t0; t <= t1; t += 30 * 60_000) ticks.push(t);
@@ -64,7 +66,7 @@ export function Grid({ profile, channels, films, at, now, kind, height, onOpen }
                 .map((f) => {
                   const left = Math.max(0, x(Date.parse(f.start)));
                   const w = Math.max(18, x(Math.min(stopOf(f), t1)) - left - 3);
-                  const dim = kind !== 'all' && f.kind !== kind;
+                  const dim = kind !== 'all' && !matchesFilter(f, kind, genre);
                   const followed = isFollowed(profile, f);
                   const live = Date.parse(f.start) <= now && now < stopOf(f);
                   // Le visuel prend la hauteur de la case, au format 16/9, et se fond dans le fond de la case
