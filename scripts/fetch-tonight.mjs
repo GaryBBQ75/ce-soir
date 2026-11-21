@@ -149,7 +149,7 @@ const GENRE_MAP = [
   // Docs et magazines
   [/nature|animal|animaux|faune|environnement|[ée]cologie/i, 'Nature'], [/voyage|d[ée]couverte|g[ée]ographie/i, 'Voyage'],
   [/science(?!.?fiction)|technolog|sant[ée]|m[ée]decine/i, 'Sciences'], [/soci[ée]t[ée]|reportage/i, 'Société'],
-  [/cuisine|gastronom/i, 'Cuisine'], [/maison|d[ée]co|jardin/i, 'Maison'], [/art|culture|cin[ée]ma/i, 'Culture'],
+  [/cuisine|gastronom/i, 'Cuisine'], [/maison|d[ée]co|jardin/i, 'Maison'], [/\barts?\b|culture|patrimoine/i, 'Culture'],
   // Spectacles
   [/humour|one.?man|stand.?up/i, 'Humour'], [/concert|musique|rock|pop|rap|jazz/i, 'Concert'], [/th[ée][âa]tre/i, 'Théâtre'],
   [/op[ée]ra|classique|ballet|danse/i, 'Classique et danse'],
