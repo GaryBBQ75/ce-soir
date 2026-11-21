@@ -55,6 +55,8 @@ export interface Channel {
   name: string;
   bouquet: Bouquet;
   logo?: string;
+  /** Logo clair : à afficher sur fond sombre */
+  logoDark?: boolean;
 }
 
 export interface Tonight {

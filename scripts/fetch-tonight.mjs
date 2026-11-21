@@ -313,6 +313,23 @@ async function downloadImage(sharp, url, file, width) {
   }
 }
 
+/** Logo clair (blanc sur transparent) : on l'affiche sur fond sombre. */
+async function isLightLogo(sharp, file) {
+  try {
+    const { data, info } = await sharp(file).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    let sum = 0;
+    let n = 0;
+    for (let i = 0; i < data.length; i += info.channels) {
+      if (data[i + 3] < 128) continue;
+      sum += 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
+      n++;
+    }
+    return n > 0 && sum / n > 200;
+  } catch {
+    return false;
+  }
+}
+
 async function downloadLogos(channelList) {
   let sharp;
   try {
@@ -329,7 +346,9 @@ async function downloadLogos(channelList) {
       const c = queue.shift();
       if (!c.logo) continue;
       const name = `${createHash('sha1').update(c.logo).digest('hex').slice(0, 16)}.webp`;
-      c.logo = (await downloadImage(sharp, c.logo, resolve(dir, name), 120)) ? `logos/${name}` : undefined;
+      const file = resolve(dir, name);
+      c.logo = (await downloadImage(sharp, c.logo, file, 120)) ? `logos/${name}` : undefined;
+      if (c.logo) c.logoDark = await isLightLogo(sharp, file);
     }
   };
   await Promise.all(Array.from({ length: 8 }, worker));

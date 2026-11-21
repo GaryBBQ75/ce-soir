@@ -46,7 +46,7 @@ export function Channels({ profile, channels, films, at, now, onOpen, onToggleFa
                 <path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z" />
               </svg>
             </button>
-            <span className="channel__logo" aria-hidden="true">
+            <span className={`channel__logo ${c.logoDark ? 'is-dark' : ''}`} aria-hidden="true">
               {c.logo ? <img src={assetUrl(c.logo)} alt="" loading="lazy" /> : <span>{c.name.slice(0, 3)}</span>}
             </span>
             {current ? (
