@@ -196,12 +196,12 @@ async function tmdb(path, params) {
   return res.json();
 }
 
-/** Séries enchaînées sur la même chaîne : un seul bloc "3 épisodes". */
+/** Programmes enchaînés sur la même chaîne avec le même titre : un seul bloc "3 épisodes". */
 function mergeEpisodes(list) {
   const out = [];
   for (const f of list) {
     const prev = out.findLast((p) => p.channelId === f.channelId);
-    if (prev && prev.kind === 'serie' && f.kind === 'serie' && prev.title === f.title && prev.stop && Math.abs(Date.parse(f.start) - Date.parse(prev.stop)) < 10 * 60000) {
+    if (prev && prev.kind === f.kind && prev.title === f.title && prev.stop && Math.abs(Date.parse(f.start) - Date.parse(prev.stop)) < 10 * 60000) {
       prev.stop = f.stop ?? prev.stop;
       prev.durationMin = Math.round((Date.parse(prev.stop) - Date.parse(prev.start)) / 60000);
       prev.episodes = (prev.episodes ?? 1) + 1;
