@@ -1,4 +1,4 @@
-import type { Bouquet, Film, Signal, Taggable } from './types';
+import { KINDS, type Bouquet, type Film, type Signal, type Taggable } from './types';
 
 /**
  * Profil de goûts, stocké en local.
@@ -55,7 +55,7 @@ export function saveProfile(p: Profile) {
 }
 
 // Importance relative de chaque type de trait
-const FACTOR = { g: 1, r: 0.8, a: 0.5, d: 0.4 } as const;
+const FACTOR = { k: 0.8, g: 1, r: 0.8, a: 0.5, d: 0.4 } as const;
 type Prefix = keyof typeof FACTOR;
 
 // Force de chaque réaction
@@ -74,6 +74,7 @@ function decade(year?: string) {
 
 export function traits(f: Taggable): string[] {
   const t: string[] = [];
+  if (f.kind) t.push(`k:${f.kind}`);
   f.genres.forEach((g) => t.push(`g:${g}`));
   f.directors.slice(0, 2).forEach((r) => t.push(`r:${r}`));
   f.cast.slice(0, 3).forEach((a) => t.push(`a:${a}`));
@@ -113,6 +114,7 @@ export interface Ranked {
 }
 
 const LABEL: Record<Prefix, (v: string) => string> = {
+  k: (v) => `Tu aimes : ${KINDS.find((k) => k.id === v)?.plural ?? v}`,
   g: (v) => `Parce que tu aimes : ${v}`,
   r: (v) => `Un film de ${v}`,
   a: (v) => `Avec ${v}`,
@@ -147,6 +149,8 @@ export function rank(p: Profile, films: Film[], seed = 0): Ranked[] {
     .map((film) => ({ film, score: score(p, film), reason: reasonFor(p, film), discovery: false }))
     .sort((a, b) => b.score - a.score);
 
+  diversify(ranked, 5, 3);
+
   // Le slot découverte n'a de sens qu'une fois que l'app a appris quelque chose
   if (ranked.length > 5 && p.signals >= 3) {
     const tail = ranked.slice(5);
@@ -166,5 +170,26 @@ export function topTraits(p: Profile, n = 6) {
     .filter(([, w]) => Math.abs(w) >= 0.5)
     .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
     .slice(0, n)
-    .map(([t, w]) => ({ label: t.slice(2), kind: t.slice(0, 1) as Prefix, weight: w }));
+    .map(([t, w]) => {
+      const kind = t.slice(0, 1) as Prefix;
+      const v = t.slice(2);
+      const label = kind === 'k' ? KINDS.find((k) => k.id === v)?.plural ?? v : kind === 'd' ? `Années ${v.slice(2)}` : v;
+      return { label, kind, weight: w };
+    });
+}
+
+/**
+ * Pas plus de `max` programmes du même type dans le top `n`,
+ * pour que la soirée propose aussi un doc, une émission ou du sport.
+ */
+function diversify(list: Ranked[], n: number, max: number) {
+  for (let i = 0; i < Math.min(n, list.length); i++) {
+    const kind = list[i].film.kind;
+    const count = list.slice(0, i).filter((r) => r.film.kind === kind).length;
+    if (count < max) continue;
+    const j = list.findIndex((r, idx) => idx > i && list.slice(0, i).filter((x) => x.film.kind === r.film.kind).length < max);
+    if (j === -1) return;
+    const [item] = list.splice(j, 1);
+    list.splice(i, 0, item);
+  }
 }

@@ -1,4 +1,4 @@
-import type { Film, Signal } from '../types';
+import { kindLabel, type Film, type Signal } from '../types';
 import { Poster } from './Poster';
 import { durationLabel, endOf, hhmm } from '../utils';
 
@@ -19,8 +19,10 @@ export function FilmSheet({ film, reminded, onSignal, onHide, onClose }: Props) 
           <Poster title={film.title} poster={film.poster} className="sheet__poster" />
           <div className="stack-sm">
             <h2 className="sheet__title">{film.title}</h2>
+            {film.subTitle && <span className="muted">{film.subTitle}</span>}
             <div className="tags">
               <span className="tag tag--accent">{film.channel} · {hhmm(film.start)}</span>
+              <span className="tag">{kindLabel(film.kind)}{film.episodes && film.episodes > 1 ? ` · ${film.episodes} épisodes` : ''}</span>
               {durationLabel(film) && <span className="tag">{durationLabel(film)} · fin {endOf(film)}</span>}
               {film.year && <span className="tag">{film.year}</span>}
               {film.rating ? <span className="tag">{film.rating.toFixed(1)}/10</span> : null}

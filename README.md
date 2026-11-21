@@ -1,7 +1,7 @@
 # Ce soir
 
-L'app qui te dit quel film regarder ce soir à la télé, sans chercher.
-Elle classe tous les films de la soirée selon tes goûts, et apprend à chaque réaction.
+L'app qui te dit quoi regarder ce soir à la télé, sans chercher : films, séries, docs, divertissement, sport.
+Elle classe tous les programmes de la soirée selon tes goûts, et apprend à chaque réaction.
 
 ## Lancer
 
@@ -14,7 +14,7 @@ Par défaut, l'app lit `public/data/tonight.json`, qui contient une **soirée d'
 
 ## Le vrai programme
 
-`scripts/fetch-tonight.mjs` récupère les films diffusés entre 20h30 et 1h30 (heure de Paris) dans les flux XMLTV gratuits de [xmltvfr.fr](https://xmltvfr.fr), puis écrit `public/data/tonight.json`.
+`scripts/fetch-tonight.mjs` récupère les programmes diffusés entre 20h30 et 1h30 (heure de Paris) dans les flux XMLTV gratuits de [xmltvfr.fr](https://xmltvfr.fr), puis écrit `public/data/tonight.json`.
 
 ```bash
 npm run fetch:tonight
@@ -22,6 +22,8 @@ npm run fetch:tonight
 TMDB_API_KEY=xxx npm run fetch:tonight
 ```
 
+- Types gardés : film (et téléfilm), série, doc et magazine, divertissement (jeux, humour, spectacles, talk-shows), sport. Journaux, météo, jeunesse, téléachat et programmes de moins de 20 min sont ignorés. Les épisodes de série enchaînés sont regroupés.
+- TMDB complète les films (affiche, note, casting) et les séries (affiche, note).
 - Clé TMDB gratuite : https://www.themoviedb.org/settings/api
 - Les noms des flux Canal+ et cinéma (`xmltv_canalsat`, `xmltv_cinema`) sont à vérifier sur xmltvfr.fr. Un flux introuvable est ignoré sans bloquer les autres.
 - Le workflow GitHub `.github/workflows/tonight.yml` relance le script chaque jour vers 15h (et à chaque push), commite le fichier, puis met l'app en ligne sur GitHub Pages.
@@ -39,7 +41,7 @@ L'app est ensuite sur `https://<compte>.github.io/ce-soir/`, avec les vraies aff
 Tout est dans `src/profile.ts`, stocké en local (pas de compte pour l'instant).
 
 1. **Pas de questionnaire** : on arrive direct sur le programme, avec la TNT par défaut. Le bouton réglages permet d'activer des bouquets (Canal+, Ciné+) et d'ajouter ou retirer des chaînes une par une.
-2. **Traits** : chaque film est décrit par ses genres, réalisateurs, 3 premiers acteurs et sa décennie.
+2. **Traits** : chaque programme est décrit par son type (film, série, doc…), ses genres, réalisateurs, 3 premiers acteurs et sa décennie.
 3. **Signaux** : chaque réaction modifie le poids des traits du film.
 
    | Réaction | Effet |
@@ -52,7 +54,8 @@ Tout est dans `src/profile.ts`, stocké en local (pas de compte pour l'instant).
 
    Les genres comptent plus que le réalisateur, qui compte plus que les acteurs et la décennie.
 4. **Score** : somme des poids des traits du film, plus un petit bonus pour les films bien notés sur TMDB.
-5. **Découverte** : après 3 réactions, la 4e place du top 5 va à un film que l'algo connaît mal, pour éviter la bulle.
+5. **Variété** : jamais plus de 3 programmes du même type dans le top 5.
+6. **Découverte** : après 3 réactions, la 4e place du top 5 va à un film que l'algo connaît mal, pour éviter la bulle.
 
 Les réglages montrent aussi ce que l'app a compris de tes goûts.
 

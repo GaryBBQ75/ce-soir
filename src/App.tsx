@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BOUQUETS, type Film, type Signal, type Tonight } from './types';
+import { KINDS, kindLabel, type Film, type Kind, type Signal, type Tonight } from './types';
 import { applySignal, loadProfile, rank, saveProfile, type Profile } from './profile';
 import { FilmSheet } from './components/FilmSheet';
 import { Settings } from './components/Settings';
@@ -13,6 +13,7 @@ export default function App() {
   const [tonight, setTonight] = useState<Tonight | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [part, setPart] = useState<Part>('all');
+  const [kind, setKind] = useState<Kind | 'all'>('all');
   const [openId, setOpenId] = useState<string | null>(null);
   const [settings, setSettings] = useState(false);
   // Graine fixe pour la session : le film "découverte" ne change pas à chaque clic
@@ -28,13 +29,14 @@ export default function App() {
   };
 
   const films = useMemo(
-    () => (tonight?.films ?? []).filter((f) => part === 'all' || f.part === part),
-    [tonight, part],
+    () => (tonight?.films ?? []).filter((f) => (part === 'all' || f.part === part) && (kind === 'all' || f.kind === kind)),
+    [tonight, part, kind],
   );
   const ranked = useMemo(() => rank(profile, films, seed), [profile, films, seed]);
   const top = ranked.slice(0, 5);
   const rest = ranked.slice(5);
-  const activeBouquets = BOUQUETS.filter((b) => rest.some((r) => r.film.bouquet === b.id));
+  const restKinds = KINDS.filter((k) => rest.some((r) => r.film.kind === k.id));
+  const kindsTonight = KINDS.filter((k) => tonight?.films.some((f) => f.kind === k.id));
 
   const openFilm = tonight?.films.find((f) => f.id === openId) ?? null;
 
@@ -82,12 +84,20 @@ export default function App() {
         ))}
       </div>
 
+      <div className="filters" role="group" aria-label="Type de programme">
+        {[{ id: 'all' as const, plural: 'Tout' }, ...kindsTonight].map((k) => (
+          <button key={k.id} aria-pressed={kind === k.id} className={`chip ${kind === k.id ? 'is-on' : ''}`} onClick={() => setKind(k.id)}>
+            {k.plural}
+          </button>
+        ))}
+      </div>
+
       {error && <p className="notice">Impossible de charger le programme : {error}</p>}
       {!tonight && !error && <p className="muted">Chargement du programme…</p>}
 
       {tonight && ranked.length === 0 && (
         <div className="notice">
-          <p>Aucun film sur tes chaînes à ce moment-là.</p>
+          <p>Rien de ce type sur tes chaînes à ce moment-là.</p>
           <button className="link" onClick={() => setSettings(true)}>Ajouter des chaînes</button>
         </div>
       )}
@@ -112,7 +122,7 @@ export default function App() {
                     <span className={`card__reason ${discovery ? 'is-discovery' : ''}`}>{reason}</span>
                     <strong className="card__title">{film.title}</strong>
                     <span className="muted small card__meta">
-                      {[film.genres[0], durationLabel(film), endOf(film) && `fin ${endOf(film)}`].filter(Boolean).join(' · ')}
+                      {[kindLabel(film.kind), film.genres[0], durationLabel(film), endOf(film) && `fin ${endOf(film)}`].filter(Boolean).join(' · ')}
                     </span>
                   </span>
                 </button>
@@ -128,12 +138,12 @@ export default function App() {
 
       {rest.length > 0 && (
         <section className="stack">
-          <h2 className="eyebrow">Les autres films · {rest.length}</h2>
-          {activeBouquets.map((b) => {
-            const list = rest.filter((r) => r.film.bouquet === b.id);
+          <h2 className="eyebrow">Le reste de la soirée · {rest.length}</h2>
+          {restKinds.map((k) => {
+            const list = rest.filter((r) => r.film.kind === k.id);
             return (
-              <div key={b.id} className="stack-sm">
-                {activeBouquets.length > 1 && <span className="muted small">{b.label}</span>}
+              <div key={k.id} className="stack-sm">
+                {restKinds.length > 1 && <span className="muted small">{k.plural} · {list.length}</span>}
                 <div className="rail">
                   {list.map(({ film }) => (
                     <button key={film.id} className="mini" onClick={() => open(film)}>

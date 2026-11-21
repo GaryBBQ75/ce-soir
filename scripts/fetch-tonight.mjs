@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Génère public/data/tonight.json : les films diffusés ce soir (20h30 à 1h30, heure de Paris)
+ * Génère public/data/tonight.json : les programmes diffusés ce soir (films, séries, docs, divertissement, sport) (20h30 à 1h30, heure de Paris)
  * à partir des flux XMLTV gratuits de xmltvfr.fr, enrichis par TMDB si TMDB_API_KEY est défini.
  *
  * Usage : node scripts/fetch-tonight.mjs
@@ -75,12 +75,22 @@ async function fetchXml(url) {
   return (url.endsWith('.gz') ? gunzipSync(buf) : buf).toString('utf8');
 }
 
-/** Un programme est un film si une de ses catégories le dit (mais pas un téléfilm). */
-function isFilm(categories) {
+/**
+ * Type de programme à partir des catégories XMLTV.
+ * null = on ignore (journal, météo, jeunesse, téléachat…).
+ */
+function kindOf(categories) {
   const c = categories.join(' | ').toLowerCase();
-  if (/t[ée]l[ée]film|s[ée]rie|court[- ]m[ée]trage/.test(c)) return false;
-  return /\bfilm\b|movie|cin[ée]ma/.test(c);
+  if (/\bfilm\b|movie|cin[ée]ma|t[ée]l[ée]film/.test(c)) return 'film';
+  if (/journal|information|m[ée]t[ée]o|loterie|jeunesse|dessin anim|t[ée]l[ée]achat|ind[ée]termin|fin des programmes|bulletin|religi/.test(c)) return null;
+  if (/s[ée]rie|feuilleton|sitcom/.test(c)) return 'serie';
+  if (/sport|football|rugby|tennis|cyclisme|basket|formule|handball|boxe|golf/.test(c)) return 'sport';
+  if (/documentaire|magazine|reportage|d[ée]couverte|histoire|science|nature|voyage/.test(c)) return 'doc';
+  if (/divertissement|jeu|r[ée]alit[ée]|vari[ée]t[ée]|humour|spectacle|concert|th[ée][âa]tre|talk|musique|[ée]mission/.test(c)) return 'divertissement';
+  return null;
 }
+
+const MIN_DURATION = 20; // minutes : écarte les programmes courts
 
 function slug(s) {
   return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -116,20 +126,24 @@ function parseSource(xml, bouquet, win, channels, films, seenChannel) {
     if (!(start >= win.from && start < win.to)) continue;
     const body = m[2];
     const cats = tags(body, 'category');
-    if (!isFilm(cats)) continue;
+    const kind = kindOf(cats);
+    if (!kind) continue;
     const channelId = attr(m[1], 'channel');
     if (!channelId) continue;
     if (!seenChannel.has(channelId)) seenChannel.set(channelId, bouquet);
     if (seenChannel.get(channelId) !== bouquet) continue; // déjà lue dans un bouquet précédent
 
     const stop = parseTime(attr(m[1], 'stop'));
+    if (Number.isFinite(stop) && (stop - start) / 60000 < MIN_DURATION) continue;
     const title = tag(body, 'title') ?? 'Sans titre';
     const key = `${channelId}-${start}`;
     if (films.has(key)) continue;
     const credits = body.match(/<credits>([\s\S]*?)<\/credits>/)?.[1] ?? '';
     films.set(key, {
       id: `${slug(channelId)}-${slug(title)}-${new Date(start).toISOString().slice(11, 16).replace(':', '')}`,
+      kind,
       title,
+      subTitle: tag(body, 'sub-title'),
       year: tag(body, 'date')?.slice(0, 4),
       channel: channels.get(channelId) ?? channelId,
       channelId,
@@ -159,7 +173,42 @@ async function tmdb(path, params) {
   return res.json();
 }
 
+/** Séries enchaînées sur la même chaîne : un seul bloc "3 épisodes". */
+function mergeEpisodes(list) {
+  const out = [];
+  for (const f of list) {
+    const prev = out.findLast((p) => p.channelId === f.channelId);
+    if (prev && prev.kind === 'serie' && f.kind === 'serie' && prev.title === f.title && prev.stop && Math.abs(Date.parse(f.start) - Date.parse(prev.stop)) < 10 * 60000) {
+      prev.stop = f.stop ?? prev.stop;
+      prev.durationMin = Math.round((Date.parse(prev.stop) - Date.parse(prev.start)) / 60000);
+      prev.episodes = (prev.episodes ?? 1) + 1;
+      continue;
+    }
+    out.push(f);
+  }
+  return out;
+}
+
+async function enrichSerie(film) {
+  try {
+    const hit = (await tmdb('/search/tv', { query: film.title })).results?.[0];
+    if (!hit) return film;
+    return {
+      ...film,
+      tmdbId: hit.id,
+      synopsis: film.synopsis || hit.overview,
+      poster: hit.poster_path ? `https://image.tmdb.org/t/p/w500${hit.poster_path}` : film.poster,
+      rating: hit.vote_count > 50 ? Math.round(hit.vote_average * 10) / 10 : undefined,
+    };
+  } catch (e) {
+    console.warn(`TMDB : ${film.title} : ${e.message}`);
+    return film;
+  }
+}
+
 async function enrich(film) {
+  if (film.kind === 'serie') return enrichSerie(film);
+  if (film.kind !== 'film') return film; // docs, émissions, sport : on garde les infos XMLTV
   try {
     const search = await tmdb('/search/movie', { query: film.title, year: film.year, region: 'FR' });
     const hit = search.results?.[0];
@@ -200,11 +249,12 @@ for (const src of SOURCES) {
   }
 }
 
-let list = [...films.values()].sort((a, b) => a.start.localeCompare(b.start));
-console.log(`${list.length} films trouvés pour le ${win.day}`);
+let list = mergeEpisodes([...films.values()].sort((a, b) => a.start.localeCompare(b.start)));
+const byKind = list.reduce((acc, f) => ({ ...acc, [f.kind]: (acc[f.kind] ?? 0) + 1 }), {});
+console.log(`${list.length} programmes trouvés pour le ${win.day}`, byKind);
 
 if (list.length === 0) {
-  console.error('Aucun film trouvé : tonight.json n\'est pas modifié.');
+  console.error('Aucun programme trouvé : tonight.json n\'est pas modifié.');
   process.exit(1);
 }
 

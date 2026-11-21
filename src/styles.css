@@ -121,3 +121,8 @@ button { font: inherit; color: inherit; }
 .hint p { margin: 0; flex: 1; font-size: 14px; line-height: 1.4; color: var(--text-2); }
 .notice p { margin: 0 0 4px; }
 .center { text-align: center; }
+
+.filters { display: flex; gap: 8px; overflow-x: auto; margin: -12px -20px 0; padding: 0 20px; scrollbar-width: none; }
+.filters::-webkit-scrollbar { display: none; }
+.filters .chip { flex: none; text-decoration: none; color: var(--text-2); }
+.filters .chip.is-on { background: var(--text); border-color: var(--text); color: var(--bg); }
