@@ -14,6 +14,7 @@ interface Props {
 export function Settings({ profile, channels, onChange, onClose }: Props) {
   const [resetArmed, setResetArmed] = useState(false);
   const [denied, setDenied] = useState(false);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const tastes = topTraits(profile, 8);
 
   const toggleBouquet = (b: Bouquet) => {
@@ -38,21 +39,29 @@ export function Settings({ profile, channels, onChange, onClose }: Props) {
   return (
     <Sheet label="Réglages" title="Réglages" onClose={onClose}>
         <h2 className="sheet__title">Mes chaînes</h2>
-        <p className="muted small">Active un bouquet entier, puis retire ou ajoute des chaînes une par une.</p>
+        <p className="muted small">Active un bouquet ou un thème entier, ou choisis tes chaînes une par une.</p>
 
         {BOUQUETS.map((b) => {
           const list = channels.filter((c) => c.bouquet === b.id);
           const bouquetOn = profile.bouquets.includes(b.id);
           const count = list.filter((c) => channelOn(profile, c.id, c.bouquet)).length;
+          if (list.length === 0) return null;
+          const open = bouquetOn || count > 0 || expanded[b.id];
           return (
             <section key={b.id} className="group">
               <label className="switch-row">
                 <span className="stack-xs">
                   <strong>{b.label}</strong>
-                  <span className="muted small">{count} / {list.length} chaînes</span>
+                  <span className="muted small">{count > 0 ? `${count} / ${list.length} chaînes` : b.hint}</span>
                 </span>
                 <input type="checkbox" className="switch" checked={bouquetOn} onChange={() => toggleBouquet(b.id)} />
               </label>
+              {!open && (
+                <button className="link" onClick={() => setExpanded({ ...expanded, [b.id]: true })}>
+                  Choisir des chaînes une par une ({list.length})
+                </button>
+              )}
+              {open && (
               <div className="chips">
                 {list.map((c) => {
                   const on = channelOn(profile, c.id, c.bouquet);
@@ -63,6 +72,7 @@ export function Settings({ profile, channels, onChange, onClose }: Props) {
                   );
                 })}
               </div>
+              )}
             </section>
           );
         })}

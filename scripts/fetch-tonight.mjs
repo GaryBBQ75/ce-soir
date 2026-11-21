@@ -37,10 +37,16 @@ function bouquetOf(id, name, source) {
   if (/\+ ?1\b|plus1|4k|uhd|\blive ?\d|360 ?- ?\d|360 \d|max \d|ligue 1\+ ?\d|dazn [3-9]|sport live|24\/24|radio|astrocenter|m6 international|tv5 ?monde|trace|nollywood|africa|afrique|maroc|antilles|guadeloupe|martinique|guyane|r[ée]union|mayotte|polyn[ée]sie|cal[ée]donie|tahiti|wallis|miquelon|1[èe]re|pulaagu|^a\+|canal partag/i.test(s)) return null;
   if (/france ?3 ?-|france 3 nouvelle|bfm (?!tv|business|grands|2\b)|t[ée]l[ée] ?(grenoble|nantes|bocal|sud|paese)|tv ?(7|8|78|rennes|tours|vend[ée]e|pi|sud|2com)\b|tl7|tebeo|t[ée]b[ée]|vosges|maurienne|lmtv|lyon capitale|via ?mirabelle|vi[aà] ?(atv|mat[ée]l[ée])|w[ée]o|8 mont blanc|7 a limoges|angers|montreuil|canal ?(9|21|32)\b|bip ?tv|union tv|tv monaco|corse|alsace|normandie|marseille|toulon|lyon|nice|lille|littoral|alpes|haute-provence/i.test(s)) return null;
 
-  if (/cin[ée]\s?\+|cineplus|\bocs\b|tcm/i.test(s)) return 'cinema';
-  if (/canal\s?\+|canalplus|plan[eè]te\s?\+|planeteplus|polar\s?\+|com[ée]die\s?\+|seasons|infosport|piwi|t[ée]l[ée]toon|cstar hits/i.test(s)) return 'canal';
-  if (/bein|rmc ?sport(?! ?talk)|eurosport|dazn|ligue 1\+|golf\+|equidia|sport\+|automoto|motorvision/i.test(s)) return 'sport';
-  if (source === 'tnt') return /paris ?premi/i.test(s) ? 'box' : 'tnt';
+  if (source === 'tnt' && !/canal|plan[eè]te|paris ?premi/i.test(s)) return 'tnt';
+  if (/canal\s?\+|canalplus/i.test(s) && !/kids/i.test(s)) return 'canal';
+  if (/cin[ée]\s?\+|cineplus|\bocs\b|tcm|paramount|^\S+ action$|\baction\b|cin[ée] western|drive ?in/i.test(s)) return 'cinema';
+  if (/bein|rmc ?sport(?! ?talk)|eurosport|dazn|ligue 1\+|golf\+|equidia|sport\+|automoto|motorvision|infosport|fight ?sports|sport en france|olympia|chaine evenement|evenements sports/i.test(s)) return 'sport';
+  if (/disney|nickelodeon|nicktoons|cartoon|boomerang|canal ?j\b|tiji|piwi|t[ée]l[ée]toon|dreamworks|baby ?tv|cartoonito|pitchoun|canal\+ ?kids|mangas|gulli/i.test(s)) return 'jeunesse';
+  if (/discovery|investigation|national geographic|natgeo|ushua|histoire|science ?(et|&) ?vie|esprit ?sorcier|museum|plan[eè]te|rmc ?(myst|wow|mecanic|alerte|j'irai|decouverte)|grands reportages|france ?tv ?docs|animaux|chasse|seasons|trek|nautical|cheval|dog ?& ?cat|crime district|my ?zen|souvenirs|\bina\b|tlc|maritima|bbc earth/i.test(s)) return 'decouverte';
+  if (/\bmtv|mcm|mezzo|melody|m6 ?music|nrj ?hits|rfm ?tv|clubbing|stingray|djazz|classica|vh1|cstar hits|zouk|mfm|bblack|music|olplay/i.test(s)) return 'musique';
+  if (/france ?24|bfm|i24|euronews|cgtn|tech ?& ?co|20 ?minutes|figaro|europe ?1|rmc talk|cnews|meteo|demain ?tv|kto|lci|franceinfo|al jazeera/i.test(s)) return 'info';
+  if (/marmiton|sant[ée]|maison|luxe|fashion|auto ?plus|mieux|lucky ?jack|mgg|ginx|gong|men'?s ?up|elle ?girl/i.test(s)) return 'lifestyle';
+  if (/paris ?premi|t[ée]va|rtl ?9|13[eè]?me ?rue|sci-?fi|syfy|warner|breizh|s[ée]rie ?club|comedy|ab ?1|ab ?3|abx|polar|com[ée]die|novelas|france ?tv ?s[ée]ries|sundance|eurochannel|bravo|sony|adult ?swim|exo/i.test(s)) return 'series';
   return 'box';
 }
 const TMDB_KEY = process.env.TMDB_API_KEY;
@@ -56,7 +62,10 @@ function parisOffset(date) {
 }
 
 function tonightWindow(now = new Date()) {
-  const day = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(now); // YYYY-MM-DD
+  // Entre minuit et 4h, on est encore "ce soir" : on prend la journée de la veille
+  const hour = +new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Paris', hour: '2-digit', hourCycle: 'h23' }).format(now);
+  const ref = hour < 4 ? new Date(now.getTime() - 5 * 3600_000) : now;
+  const day = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(ref); // YYYY-MM-DD
   const off = parisOffset(now);
   const from = Date.parse(`${day}T06:00:00${off}`);
   const to = from + 20 * 3600_000; // jusqu'à 2h du matin
@@ -393,10 +402,11 @@ async function downloadPosters(list) {
 
 list = await downloadPosters(list);
 
-// Les "chaînes des box" sont nombreuses : on ne liste que celles qui ont un programme
+// On ne liste que les chaînes qui ont au moins un programme aujourd'hui
+const withProgrammes = new Set(list.map((f) => f.channelId));
 const channelList = await downloadLogos(
   [...seenChannel.entries()]
-    .filter(([id, c]) => c.bouquet && (c.bouquet !== 'box' || list.some((f) => f.channelId === id && f.kind !== 'autre')))
+    .filter(([id, c]) => c.bouquet && withProgrammes.has(id))
     .map(([id, c]) => ({ id, name: decode(channels.get(id) ?? id), bouquet: c.bouquet, logo: logos.get(id) })),
 );
 

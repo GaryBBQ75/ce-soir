@@ -1,11 +1,21 @@
-export type Bouquet = 'tnt' | 'canal' | 'cinema' | 'sport' | 'box';
+export type Bouquet = 'tnt' | 'canal' | 'cinema' | 'sport' | 'decouverte' | 'series' | 'jeunesse' | 'musique' | 'info' | 'lifestyle' | 'box';
 
+/**
+ * Bouquets et thèmes. TNT, Canal+ et Ciné+ OCS sont de vrais bouquets ;
+ * les autres regroupent par thème les chaînes des box (Free, SFR, Orange, Bouygues…).
+ */
 export const BOUQUETS: { id: Bouquet; label: string; hint: string }[] = [
-  { id: 'tnt', label: 'TNT gratuite', hint: 'TF1, France 2, M6, Arte, W9, TMC…' },
-  { id: 'canal', label: 'Canal+', hint: 'Canal+, Canal+ Cinéma, Séries, Docs, Planète+…' },
-  { id: 'cinema', label: 'Ciné+ OCS', hint: 'Ciné+ Frisson, Family, Classic, OCS, TCM…' },
-  { id: 'sport', label: 'Sport', hint: 'beIN Sports, RMC Sport, Eurosport, DAZN…' },
-  { id: 'box', label: 'Chaînes des box', hint: 'Free, SFR, Orange, Bouygues : Paris Première, Téva, RTL9…' },
+  { id: 'tnt', label: 'TNT gratuite', hint: 'TF1, France 2, M6, Arte, W9, TMC, RMC Découverte…' },
+  { id: 'canal', label: 'Canal+', hint: 'Canal+, Cinéma(s), Séries, Docs, Foot, Box Office…' },
+  { id: 'cinema', label: 'Cinéma', hint: 'Ciné+, OCS, TCM, Action, Ciné Western…' },
+  { id: 'sport', label: 'Sport', hint: 'beIN Sports, RMC Sport, Eurosport, DAZN, Equidia…' },
+  { id: 'decouverte', label: 'Découverte', hint: 'Discovery, National Geographic, Planète+, Histoire, Ushuaïa, RMC Mystère…' },
+  { id: 'series', label: 'Séries & divertissement', hint: 'Paris Première, Téva, RTL9, 13e Rue, Syfy, Warner TV, Comédie+…' },
+  { id: 'jeunesse', label: 'Jeunesse', hint: 'Disney, Nickelodeon, Cartoon Network, Boomerang, Canal J, Tiji…' },
+  { id: 'musique', label: 'Musique', hint: 'MTV, MCM, Mezzo, Melody, Trace…' },
+  { id: 'info', label: 'Info', hint: 'France 24, BFM Business, Euronews, i24news…' },
+  { id: 'lifestyle', label: 'Maison & loisirs', hint: 'Marmiton, Maison & Travaux, Top Santé, gaming…' },
+  { id: 'box', label: 'Autres chaînes', hint: 'Le reste des chaînes françaises' },
 ];
 
 /** 'autre' : journal, météo, jeunesse… visibles dans la grille des chaînes, jamais suggérés */

@@ -14,7 +14,7 @@ Par défaut, l'app lit `public/data/tonight.json`, qui contient une **soirée d'
 
 ## Le vrai programme
 
-`scripts/fetch-tonight.mjs` récupère tous les programmes de la journée, de 6h à 2h (heure de Paris), dans les flux XMLTV gratuits de [xmltvfr.fr](https://xmltvfr.fr) (flux TNT + flux complet), télécharge les visuels et écrit `tonight.json`.
+`scripts/fetch-tonight.mjs` récupère tous les programmes de la journée, de 6h à 2h (heure de Paris ; entre minuit et 4h on reste sur la soirée de la veille), dans les flux XMLTV gratuits de [xmltvfr.fr](https://xmltvfr.fr) (flux TNT + flux complet), télécharge les visuels et écrit `tonight.json`.
 
 ```bash
 npm run fetch:tonight                 # écrit dans public/
@@ -22,7 +22,7 @@ OUT_DIR=dist npm run fetch:tonight    # écrit dans dist/ après un build
 TMDB_API_KEY=xxx npm run fetch:tonight  # + notes et casting TMDB (optionnel)
 ```
 
-- **Bouquets** : TNT gratuite, Canal+ (et Planète+, Polar+, Comédie+…), Ciné+ OCS, Sport (beIN, RMC Sport, Eurosport, DAZN…), Chaînes des box. Sont écartées : chaînes étrangères, locales, outre-mer, adultes, décalées (+1), doublons 4K et multiplex sport.
+- **Bouquets et thèmes** : TNT gratuite, Canal+, puis les chaînes des box rangées par thème : Cinéma, Sport, Découverte, Séries & divertissement, Jeunesse, Musique, Info, Maison & loisirs, Autres. Le classement se fait par nom de chaîne dans `bouquetOf()`. Sont écartées : chaînes étrangères, locales, outre-mer, adultes, décalées (+1), doublons 4K et multiplex sport.
 - **Types** : film (et téléfilm), série, doc et magazine, divertissement, sport, et « autre » (journal, météo, jeunesse…). Les « autre » et les programmes de moins de 20 min apparaissent dans la grille des chaînes mais ne sont jamais suggérés. Les programmes enchaînés avec le même titre sont regroupés.
 - **Logos des chaînes** : téléchargés et redimensionnés comme les visuels.
 - **Visuels** : téléchargés depuis le flux, redimensionnés en WebP 400 px (sharp) et servis par l'app.
