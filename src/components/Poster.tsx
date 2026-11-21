@@ -1,4 +1,4 @@
-import { colorsFor } from '../utils';
+import { assetUrl, colorsFor } from '../utils';
 
 interface Props {
   title: string;
@@ -11,8 +11,7 @@ interface Props {
 export function Poster({ title, poster, className = '', big }: Props) {
   if (poster) {
     // Visuel téléchargé par le script (chemin relatif) ou lien direct
-    const src = /^https?:/.test(poster) ? poster : `${import.meta.env.BASE_URL}${poster}`;
-    return <img className={`poster ${className}`} src={src} alt="" loading="lazy" />;
+    return <img className={`poster ${className}`} src={assetUrl(poster)} alt="" loading="lazy" />;
   }
   const { bg, ink } = colorsFor(title);
   return (

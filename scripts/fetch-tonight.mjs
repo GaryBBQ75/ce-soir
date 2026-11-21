@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * Génère public/data/tonight.json : les programmes diffusés ce soir (films, séries, docs, divertissement, sport) (20h30 à 1h30, heure de Paris)
+ * Génère data/tonight.json : tous les programmes de la journée (6h à 2h, heure de Paris)
+ * sur les chaînes françaises, avec leur type (film, série, doc, divertissement, sport, autre). (20h30 à 1h30, heure de Paris)
  * à partir des flux XMLTV gratuits de xmltvfr.fr, enrichis par TMDB si TMDB_API_KEY est défini.
  *
  * Usage : node scripts/fetch-tonight.mjs
@@ -57,10 +58,11 @@ function parisOffset(date) {
 function tonightWindow(now = new Date()) {
   const day = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(now); // YYYY-MM-DD
   const off = parisOffset(now);
-  const from = Date.parse(`${day}T20:30:00${off}`);
-  const to = from + 5 * 3600_000; // jusqu'à 1h30
+  const from = Date.parse(`${day}T06:00:00${off}`);
+  const to = from + 20 * 3600_000; // jusqu'à 2h du matin
+  const primeStart = Date.parse(`${day}T20:30:00${off}`);
   const primeEnd = Date.parse(`${day}T22:15:00${off}`);
-  return { day, from, to, primeEnd };
+  return { day, from, to, primeStart, primeEnd };
 }
 
 // ---------- Lecture XMLTV ----------
@@ -101,16 +103,17 @@ async function fetchXml(url) {
  */
 function kindOf(categories) {
   const c = categories.join(' | ').toLowerCase();
+  if (/ind[ée]termin|fin des programmes/.test(c)) return null;
   if (/\bfilm\b|movie|cin[ée]ma|t[ée]l[ée]film/.test(c)) return 'film';
-  if (/journal|information|m[ée]t[ée]o|loterie|jeunesse|dessin anim|t[ée]l[ée]achat|ind[ée]termin|fin des programmes|bulletin|religi/.test(c)) return null;
+  if (/journal|information|m[ée]t[ée]o|loterie|jeunesse|dessin anim|t[ée]l[ée]achat|bulletin|religi/.test(c)) return 'autre';
   if (/s[ée]rie|feuilleton|sitcom/.test(c)) return 'serie';
   if (/sport|football|rugby|tennis|cyclisme|basket|formule|handball|boxe|golf/.test(c)) return 'sport';
   if (/documentaire|magazine|reportage|d[ée]couverte|histoire|science|nature|voyage/.test(c)) return 'doc';
   if (/divertissement|jeu|r[ée]alit[ée]|vari[ée]t[ée]|humour|spectacle|concert|th[ée][âa]tre|talk|musique|[ée]mission/.test(c)) return 'divertissement';
-  return null;
+  // "autre" : gardé pour la grille des chaînes, jamais proposé en suggestion
+  return 'autre';
 }
 
-const MIN_DURATION = 20; // minutes : écarte les programmes courts
 
 function slug(s) {
   return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -139,6 +142,10 @@ function parseSource(xml, source, win, channels, films, seenChannel) {
     if (!id) continue;
     const name = tag(m[2], 'display-name') ?? id;
     if (!channels.has(id)) channels.set(id, name);
+    if (!logos.has(id)) {
+      const icon = m[2].match(/<icon\b[^>]*src="([^"]+)"/)?.[1];
+      if (icon) logos.set(id, icon);
+    }
     // Une chaîne appartient au premier flux où on la voit (TNT avant les autres)
     if (!seenChannel.has(id)) seenChannel.set(id, { source, bouquet: bouquetOf(id, name, source) });
   }
@@ -157,7 +164,6 @@ function parseSource(xml, source, win, channels, films, seenChannel) {
     if (/adulte|charme|[ée]rotique|\bx\b/i.test(cats.join(' '))) continue;
 
     const stop = parseTime(attr(m[1], 'stop'));
-    if (Number.isFinite(stop) && (stop - start) / 60000 < MIN_DURATION) continue;
     const title = tag(body, 'title') ?? 'Sans titre';
     const key = `${channelId}-${start}`;
     if (films.has(key)) continue;
@@ -175,11 +181,11 @@ function parseSource(xml, source, win, channels, films, seenChannel) {
       stop: Number.isFinite(stop) ? new Date(stop).toISOString() : undefined,
       durationMin: Number.isFinite(stop) ? Math.round((stop - start) / 60000) : undefined,
       genres: genres(cats),
-      directors: tags(credits, 'director').filter(Boolean),
-      cast: tags(credits, 'actor').filter(Boolean).slice(0, 6),
-      synopsis: tag(body, 'desc'),
-      poster: body.match(/<icon\b[^>]*src="([^"]+)"/)?.[1],
-      part: start < win.primeEnd ? 'prime' : 'seconde',
+      directors: kind === 'autre' ? [] : tags(credits, 'director').filter(Boolean),
+      cast: kind === 'autre' ? [] : tags(credits, 'actor').filter(Boolean).slice(0, 6),
+      synopsis: tag(body, 'desc')?.slice(0, 320),
+      poster: kind === 'autre' ? undefined : body.match(/<icon\b[^>]*src="([^"]+)"/)?.[1],
+      part: start < win.primeStart ? 'jour' : start < win.primeEnd ? 'prime' : 'seconde',
     });
   }
 }
@@ -230,6 +236,7 @@ async function enrichSerie(film) {
 }
 
 async function enrich(film) {
+  if (film.part === 'jour') return film; // on limite les appels à la soirée
   if (film.kind === 'serie') return enrichSerie(film);
   if (film.kind !== 'film') return film; // docs, émissions, sport : on garde les infos XMLTV
   try {
@@ -260,6 +267,7 @@ async function enrich(film) {
 
 const win = tonightWindow();
 const channels = new Map();
+const logos = new Map();
 const films = new Map();
 const seenChannel = new Map();
 
@@ -289,6 +297,46 @@ if (TMDB_KEY) {
 
 // ---------- Visuels : téléchargés et redimensionnés, servis par l'app elle-même ----------
 
+async function downloadImage(sharp, url, file, width) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 10_000);
+  try {
+    const res = await fetch(url, { signal: ctrl.signal });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const buf = Buffer.from(await res.arrayBuffer());
+    await sharp(buf).resize({ width, withoutEnlargement: true }).webp({ quality: 72 }).toFile(file);
+    return true;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
+async function downloadLogos(channelList) {
+  let sharp;
+  try {
+    sharp = (await import('sharp')).default;
+  } catch {
+    return channelList;
+  }
+  const dir = resolve(OUT_DIR, 'logos');
+  if (existsSync(dir)) rmSync(dir, { recursive: true });
+  mkdirSync(dir, { recursive: true });
+  const queue = [...channelList];
+  const worker = async () => {
+    while (queue.length) {
+      const c = queue.shift();
+      if (!c.logo) continue;
+      const name = `${createHash('sha1').update(c.logo).digest('hex').slice(0, 16)}.webp`;
+      c.logo = (await downloadImage(sharp, c.logo, resolve(dir, name), 120)) ? `logos/${name}` : undefined;
+    }
+  };
+  await Promise.all(Array.from({ length: 8 }, worker));
+  console.log(`${channelList.filter((c) => c.logo).length} logos téléchargés`);
+  return channelList;
+}
+
 async function downloadPosters(list) {
   let sharp;
   try {
@@ -310,22 +358,10 @@ async function downloadPosters(list) {
       if (!cache.has(name)) {
         cache.set(
           name,
-          (async () => {
-            const ctrl = new AbortController();
-            const t = setTimeout(() => ctrl.abort(), 10_000);
-            try {
-              const res = await fetch(f.poster, { signal: ctrl.signal });
-              if (!res.ok) throw new Error(`HTTP ${res.status}`);
-              const buf = Buffer.from(await res.arrayBuffer());
-              await sharp(buf).resize({ width: 400, withoutEnlargement: true }).webp({ quality: 72 }).toFile(resolve(POSTERS_DIR, name));
-              ok++;
-              return true;
-            } catch {
-              return false;
-            } finally {
-              clearTimeout(t);
-            }
-          })(),
+          downloadImage(sharp, f.poster, resolve(POSTERS_DIR, name), 400).then((r) => {
+            if (r) ok++;
+            return r;
+          }),
         );
       }
       f.poster = (await cache.get(name)) ? `posters/${name}` : undefined;
@@ -338,22 +374,13 @@ async function downloadPosters(list) {
 
 list = await downloadPosters(list);
 
-mkdirSync(dirname(OUT), { recursive: true });
-writeFileSync(
-  OUT,
-  JSON.stringify(
-    {
-      date: win.day,
-      generatedAt: new Date().toISOString(),
-      source: 'xmltv',
-      // Les "chaînes des box" sont nombreuses : on ne liste que celles qui ont un programme ce soir
-      channels: [...seenChannel.entries()]
-        .filter(([id, c]) => c.bouquet && (c.bouquet !== 'box' || list.some((f) => f.channelId === id)))
-        .map(([id, c]) => ({ id, name: decode(channels.get(id) ?? id), bouquet: c.bouquet })),
-      films: list,
-    },
-    null,
-    1,
-  ),
+// Les "chaînes des box" sont nombreuses : on ne liste que celles qui ont un programme
+const channelList = await downloadLogos(
+  [...seenChannel.entries()]
+    .filter(([id, c]) => c.bouquet && (c.bouquet !== 'box' || list.some((f) => f.channelId === id && f.kind !== 'autre')))
+    .map(([id, c]) => ({ id, name: decode(channels.get(id) ?? id), bouquet: c.bouquet, logo: logos.get(id) })),
 );
+
+mkdirSync(dirname(OUT), { recursive: true });
+writeFileSync(OUT, JSON.stringify({ date: win.day, generatedAt: new Date().toISOString(), source: 'xmltv', channels: channelList, films: list }));
 console.log(`Écrit : ${OUT}`);

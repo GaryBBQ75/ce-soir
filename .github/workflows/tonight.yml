@@ -2,7 +2,9 @@ name: Programme du soir et mise en ligne
 
 on:
   schedule:
-    # Deux passages : 15h pour la soirée, 19h pour les derniers changements (heure de Paris)
+    # 6h pour la journée, puis 12h, 15h et 19h pour les changements de dernière minute (heure de Paris)
+    - cron: '7 5 * * *'
+    - cron: '7 11 * * *'
     - cron: '7 14 * * *'
     - cron: '7 18 * * *'
   push:
@@ -45,7 +47,7 @@ jobs:
       - name: Publier les données sur la branche data
         if: steps.fetch.outcome == 'success'
         run: |
-          mkdir -p /tmp/data && cp -r dist/data dist/posters /tmp/data/ 2>/dev/null || true
+          mkdir -p /tmp/data && cp -r dist/data dist/posters dist/logos /tmp/data/ 2>/dev/null || true
           cd /tmp/data
           git init -q -b data
           git config user.name "github-actions[bot]"

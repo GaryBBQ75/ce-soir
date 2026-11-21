@@ -1,16 +1,18 @@
 import { kindLabel, type Film, type Signal } from '../types';
 import { Poster } from './Poster';
+import { Progress } from './Progress';
 import { durationLabel, endOf, hhmm } from '../utils';
 
 interface Props {
   film: Film;
+  now: number;
   reminded: boolean;
   onSignal: (s: Signal) => void;
   onHide: () => void;
   onClose: () => void;
 }
 
-export function FilmSheet({ film, reminded, onSignal, onHide, onClose }: Props) {
+export function FilmSheet({ film, now, reminded, onSignal, onHide, onClose }: Props) {
   return (
     <div className="sheet-backdrop" onClick={onClose}>
       <div className="sheet" role="dialog" aria-label={film.title} onClick={(e) => e.stopPropagation()}>
@@ -29,6 +31,7 @@ export function FilmSheet({ film, reminded, onSignal, onHide, onClose }: Props) 
             </div>
           </div>
         </div>
+        <Progress film={film} now={now} times />
         {film.genres.length > 0 && <p className="muted small">{film.genres.join(' · ')}</p>}
         {film.synopsis && <p className="sheet__synopsis">{film.synopsis}</p>}
         {(film.directors.length > 0 || film.cast.length > 0) && (
@@ -41,11 +44,13 @@ export function FilmSheet({ film, reminded, onSignal, onHide, onClose }: Props) 
         <button className="btn btn--primary btn--wide" onClick={() => onSignal('remind')}>
           {reminded ? 'Rappel activé' : 'Me rappeler avant le début'}
         </button>
+        {film.kind !== 'autre' && (
         <div className="row">
           <button className="btn btn--ghost" onClick={() => onSignal('like')}>J'aime</button>
           <button className="btn btn--ghost" onClick={() => onSignal('watched')}>Déjà vu</button>
           <button className="btn btn--ghost" onClick={onHide}>Pas pour moi</button>
         </div>
+        )}
       </div>
     </div>
   );

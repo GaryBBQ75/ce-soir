@@ -8,7 +8,8 @@ export const BOUQUETS: { id: Bouquet; label: string; hint: string }[] = [
   { id: 'box', label: 'Chaînes des box', hint: 'Free, SFR, Orange, Bouygues : Paris Première, Téva, RTL9…' },
 ];
 
-export type Kind = 'film' | 'serie' | 'doc' | 'divertissement' | 'sport';
+/** 'autre' : journal, météo, jeunesse… visibles dans la grille des chaînes, jamais suggérés */
+export type Kind = 'film' | 'serie' | 'doc' | 'divertissement' | 'sport' | 'autre';
 
 export const KINDS: { id: Kind; label: string; plural: string }[] = [
   { id: 'film', label: 'Film', plural: 'Films' },
@@ -18,7 +19,7 @@ export const KINDS: { id: Kind; label: string; plural: string }[] = [
   { id: 'sport', label: 'Sport', plural: 'Sport' },
 ];
 
-export const kindLabel = (k: Kind) => KINDS.find((x) => x.id === k)?.label ?? k;
+export const kindLabel = (k: Kind) => KINDS.find((x) => x.id === k)?.label ?? 'Programme';
 
 /** Un programme de la soirée (film, série, doc, émission, sport). */
 export interface Film {
@@ -44,13 +45,16 @@ export interface Film {
   poster?: string;
   /** Note TMDB sur 10, si dispo */
   rating?: number;
-  part: 'prime' | 'seconde';
+  part: Part;
 }
+
+export type Part = 'jour' | 'prime' | 'seconde';
 
 export interface Channel {
   id: string;
   name: string;
   bouquet: Bouquet;
+  logo?: string;
 }
 
 export interface Tonight {

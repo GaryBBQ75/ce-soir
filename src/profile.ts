@@ -15,6 +15,8 @@ export interface Profile {
   /** Chaînes ajoutées une par une, hors bouquet actif */
   added: Record<string, true>;
   hintDismissed: boolean;
+  /** Chaînes favorites, en tête de la grille */
+  favorites: Record<string, true>;
   weights: Record<string, number>;
   hidden: Record<string, true>;
   reminders: Record<string, true>;
@@ -29,6 +31,7 @@ export const emptyProfile = (): Profile => ({
   excluded: {},
   added: {},
   hintDismissed: false,
+  favorites: {},
   weights: {},
   hidden: {},
   reminders: {},

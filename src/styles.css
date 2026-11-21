@@ -22,7 +22,7 @@ button { font: inherit; color: inherit; }
   max-width: 520px;
   margin: 0 auto;
   min-height: 100dvh;
-  padding: max(24px, env(safe-area-inset-top)) 20px 48px;
+  padding: max(24px, env(safe-area-inset-top)) 20px calc(96px + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
   gap: 26px;
@@ -126,3 +126,36 @@ button { font: inherit; color: inherit; }
 .filters::-webkit-scrollbar { display: none; }
 .filters .chip { flex: none; text-decoration: none; color: var(--text-2); }
 .filters .chip.is-on { background: var(--text); border-color: var(--text); color: var(--bg); }
+
+/* Ligne de temps */
+.progress-line { display: flex; align-items: center; gap: 8px; width: 100%; font-size: 12px; color: var(--muted); }
+.progress-line__track { flex: 1; height: 4px; border-radius: 2px; background: var(--surface-2); overflow: hidden; min-width: 40px; }
+.progress-line__fill { display: block; height: 100%; background: var(--muted); }
+.progress-line__fill.is-live { background: var(--accent); }
+.progress-line__label { flex: none; white-space: nowrap; }
+.progress-line__label.is-live { color: var(--accent); font-weight: 600; }
+.progress-line__time { flex: none; font-variant-numeric: tabular-nums; }
+.card__body .progress-line { margin-top: 4px; }
+.mini .progress-line { font-size: 11px; gap: 6px; }
+.mini .progress-line__track { min-width: 20px; }
+
+.live-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #ff5a4f; margin-right: 6px; vertical-align: middle; }
+.segmented button { display: inline-flex; align-items: center; justify-content: center; }
+
+/* Grille des chaînes */
+.channels { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.channel { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--surface-2); }
+.channel__fav { flex: none; width: 34px; height: 44px; border: 0; background: none; color: var(--line); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; }
+.channel__fav.is-on { color: var(--accent); }
+.channel__logo { flex: none; width: 52px; height: 52px; border-radius: 12px; background: #fff; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.channel__logo img { width: 80%; height: 80%; object-fit: contain; }
+.channel__logo span { color: #111; font-weight: 700; font-size: 13px; }
+.channel__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; border: 0; background: none; padding: 0; text-align: left; cursor: pointer; color: inherit; }
+.channel__name { font-size: 12px; color: var(--muted); }
+.channel__title { font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.channel__next { font-size: 13px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Barre d'onglets */
+.tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; display: flex; justify-content: center; gap: 8px; padding: 8px 20px calc(8px + env(safe-area-inset-bottom)); background: rgba(14, 14, 16, 0.92); backdrop-filter: blur(12px); border-top: 1px solid var(--surface-2); }
+.tabbar button { flex: 1; max-width: 240px; min-height: 52px; border: 0; background: none; color: var(--muted); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 12px; font-weight: 600; cursor: pointer; border-radius: 14px; }
+.tabbar button.is-on { color: var(--text); background: var(--surface); }

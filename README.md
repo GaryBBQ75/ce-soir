@@ -14,7 +14,7 @@ Par défaut, l'app lit `public/data/tonight.json`, qui contient une **soirée d'
 
 ## Le vrai programme
 
-`scripts/fetch-tonight.mjs` récupère les programmes diffusés entre 20h30 et 1h30 (heure de Paris) dans les flux XMLTV gratuits de [xmltvfr.fr](https://xmltvfr.fr) (flux TNT + flux complet), télécharge les visuels et écrit `tonight.json`.
+`scripts/fetch-tonight.mjs` récupère tous les programmes de la journée, de 6h à 2h (heure de Paris), dans les flux XMLTV gratuits de [xmltvfr.fr](https://xmltvfr.fr) (flux TNT + flux complet), télécharge les visuels et écrit `tonight.json`.
 
 ```bash
 npm run fetch:tonight                 # écrit dans public/
@@ -23,19 +23,26 @@ TMDB_API_KEY=xxx npm run fetch:tonight  # + notes et casting TMDB (optionnel)
 ```
 
 - **Bouquets** : TNT gratuite, Canal+ (et Planète+, Polar+, Comédie+…), Ciné+ OCS, Sport (beIN, RMC Sport, Eurosport, DAZN…), Chaînes des box. Sont écartées : chaînes étrangères, locales, outre-mer, adultes, décalées (+1), doublons 4K et multiplex sport.
-- **Types gardés** : film (et téléfilm), série, doc et magazine, divertissement, sport. Journaux, météo, jeunesse, téléachat et programmes de moins de 20 min sont ignorés. Les épisodes de série enchaînés sont regroupés.
+- **Types** : film (et téléfilm), série, doc et magazine, divertissement, sport, et « autre » (journal, météo, jeunesse…). Les « autre » et les programmes de moins de 20 min apparaissent dans la grille des chaînes mais ne sont jamais suggérés. Les programmes enchaînés avec le même titre sont regroupés.
+- **Logos des chaînes** : téléchargés et redimensionnés comme les visuels.
 - **Visuels** : téléchargés depuis le flux, redimensionnés en WebP 400 px (sharp) et servis par l'app.
 - **TMDB** (optionnel) : notes et casting des films, affiches des séries. Clé gratuite sur https://www.themoviedb.org/settings/api
 
 ### Mise à jour automatique et mise en ligne
 
-Le workflow `.github/workflows/tonight.yml` tourne chaque jour vers 15h et 19h, et à chaque push :
+Le workflow `.github/workflows/tonight.yml` tourne chaque jour vers 6h, 12h, 15h et 19h, et à chaque push :
 1. build de l'app ;
 2. récupération du programme et des visuels dans `dist/` ;
 3. copie des données sur la branche `data` (un seul commit, écrasé chaque jour) ;
 4. mise en ligne sur GitHub Pages.
 
 À faire une fois : Settings > Pages > Source : **GitHub Actions** (et le secret `TMDB_API_KEY` si tu veux TMDB).
+
+## L'app
+
+- **Moment** : Maintenant (en cours ou qui commence dans 30 min), 1re partie (vers 21h10), 2e partie (vers 22h50).
+- **Pour toi** : les programmes du moment classés selon tes goûts, avec une ligne de temps (avancement, temps restant ou « dans 12 min »).
+- **Chaînes** : toutes tes chaînes d'un coup, avec ce qui passe au moment choisi, sa progression et ce qui suit. Étoile pour mettre une chaîne en favori, en haut de la liste.
 
 ## Comment l'app apprend tes goûts
 
