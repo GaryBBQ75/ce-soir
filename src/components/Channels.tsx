@@ -5,6 +5,7 @@ import { channelOn, isFollowed, score, showKey, type Profile } from '../profile'
 import { hhmm, isOn, stopOf } from '../utils';
 import { ChannelLogo } from './ChannelLogo';
 import { Poster } from './Poster';
+import { CsaBadge } from './Badges';
 import { Progress } from './Progress';
 import { Grid } from './Grid';
 
@@ -16,6 +17,7 @@ interface Props {
   at: number;
   now: number;
   onOpen: (f: Film) => void;
+  onOpenChannel: (channelId: string) => void;
   onChange: (p: Profile) => void;
 }
 
@@ -33,7 +35,7 @@ export function orderedChannels(p: Profile, channels: Channel[]) {
 }
 
 /** Toutes mes chaînes d'un coup : liste (ce qui passe + ce qui suit) ou grille horaire. */
-export function Channels({ profile, channels, films, at, now, onOpen, onChange }: Props) {
+export function Channels({ profile, channels, films, at, now, onOpen, onOpenChannel, onChange }: Props) {
   const [view, setView] = useState<View>('list');
   const [sort, setSort] = useState<Sort>('mine');
   const [kind, setKind] = useState<Kind | 'all'>('all');
@@ -114,11 +116,16 @@ export function Channels({ profile, channels, films, at, now, onOpen, onChange }
   };
 
   // Vignette : visuel du programme, avec le logo de la chaîne en petit dans le coin
+  // Toucher le logo ouvre la journée de la chaîne ; toucher l'image ouvre le programme
   const thumb = (c: Channel, f?: Film) => (
-    <button className="channel__thumb" onClick={() => f && onOpen(f)} tabIndex={-1} aria-hidden="true">
-      {f ? <Poster title={f.title} poster={f.poster} className="channel__poster" /> : <span className="channel__poster" />}
-      <ChannelLogo channel={c} fallback={c.name} size="xs" className="channel__clogo" />
-    </button>
+    <span className="channel__thumb">
+      <span className="channel__thumb-img" onClick={() => f && onOpen(f)} aria-hidden="true">
+        {f ? <Poster title={f.title} poster={f.poster} className="channel__poster" /> : <span className="channel__poster" />}
+      </span>
+      <button className="channel__clogo" onClick={() => onOpenChannel(c.id)} aria-label={`Programme de la journée sur ${c.name}`}>
+        <ChannelLogo channel={c} fallback={c.name} size="xs" />
+      </button>
+    </span>
   );
 
   return (
@@ -177,7 +184,7 @@ export function Channels({ profile, channels, films, at, now, onOpen, onChange }
 
           {view === 'grid' ? (
             <div ref={gridWrap}>
-              <Grid profile={profile} channels={ordered} films={films} at={at} now={now} kind={kind} genre={genre} height={gridH} onOpen={onOpen} />
+              <Grid profile={profile} channels={ordered} films={films} at={at} now={now} kind={kind} genre={genre} height={gridH} onOpen={onOpen} onOpenChannel={onOpenChannel} />
             </div>
           ) : (
             <>
@@ -201,7 +208,10 @@ export function Channels({ profile, channels, films, at, now, onOpen, onChange }
                       {thumb(c, current)}
                       {current ? (
                         <button className="channel__body" onClick={() => onOpen(current)}>
-                          <span className="channel__name">{c.name}</span>
+                          <span className="channel__name">
+                            {c.name}
+                            {current.csa && <CsaBadge csa={current.csa} size="sm" />}
+                          </span>
                           <span className="channel__title">
                             {isFollowed(profile, current) && <span className="badge">Suivi</span>}
                             {current.title}

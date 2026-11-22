@@ -164,6 +164,57 @@ function genres(raw) {
   return [...out];
 }
 
+/**
+ * Infos détaillées XMLTV : signalétique CSA, notes presse, pays, saison/épisode,
+ * rôles des acteurs, présentateurs, scénaristes, qualité, sous-titres, inédit/rediffusion.
+ */
+function extras(body, credits, kind) {
+  if (kind === 'autre') return {};
+  const out = {};
+  const csa = body.match(/<rating\b[^>]*>\s*<value>([^<]+)<\/value>/)?.[1]?.trim();
+  const m = csa?.match(/-?\s*(10|12|16|18)/);
+  if (m) out.csa = `-${m[1]}`;
+  const stars = [...body.matchAll(/<star-rating\b([^>]*)>\s*<value>([^<]+)<\/value>/g)]
+    .map((r) => {
+      const [v, max] = r[2].split('/').map(Number);
+      return Number.isFinite(v) && max ? { source: attr(r[1], 'system') || 'Presse', score: Math.round((v / max) * 100) / 10, display: `${v}/${max}` } : null;
+    })
+    .filter(Boolean);
+  if (stars.length) out.ratings = stars;
+  const country = tag(body, 'country');
+  if (country) out.country = country;
+  const ep = body.match(/<episode-num\b[^>]*system="xmltv_ns"[^>]*>([^<]+)<\/episode-num>/)?.[1];
+  if (ep) {
+    const [se, e] = ep.split('.');
+    const sn = parseInt(se, 10);
+    const en = parseInt(e, 10);
+    if (Number.isFinite(sn)) out.season = sn + 1;
+    if (Number.isFinite(en)) out.episode = en + 1;
+  } else {
+    const on = body.match(/<episode-num\b[^>]*>S(\d+)\s*E(\d+)/i);
+    if (on) Object.assign(out, { season: +on[1], episode: +on[2] });
+  }
+  const actors = [...credits.matchAll(/<actor\b([^>]*)>([\s\S]*?)<\/actor>/g)]
+    .map((a) => ({ name: decode(a[2]), role: attr(a[1], 'role') }))
+    .filter((a) => a.name)
+    .slice(0, 12);
+  if (actors.length) out.castDetails = actors;
+  const crew = [];
+  for (const [t, job] of [['presenter', 'Présentation'], ['writer', 'Scénario'], ['composer', 'Musique'], ['producer', 'Production'], ['guest', 'Invité']]) {
+    for (const n of tags(credits, t).slice(0, 4)) if (n) crew.push({ job, name: n });
+  }
+  if (crew.length) out.crew = crew;
+  const flags = {};
+  if (/<previously-shown/.test(body)) flags.rerun = true;
+  if (/<premiere|<new\s*\/?>/.test(body)) flags.premiere = true;
+  if (/<quality>\s*(HDTV|HD|UHD|4K)/i.test(body)) flags.hd = true;
+  if (/<subtitles\b[^>]*type="(teletext|onscreen)"/.test(body)) flags.subtitles = true;
+  if (/audio-?description|<audio>[\s\S]*?described/i.test(body)) flags.audioDescription = true;
+  if (/\bVOST|version originale/i.test(body)) flags.vost = true;
+  if (Object.keys(flags).length) out.flags = flags;
+  return out;
+}
+
 function parseSource(xml, source, win, channels, films, seenChannel) {
   for (const m of xml.matchAll(/<channel\b([^>]*)>([\s\S]*?)<\/channel>/g)) {
     const id = attr(m[1], 'id');
@@ -196,7 +247,9 @@ function parseSource(xml, source, win, channels, films, seenChannel) {
     const key = `${channelId}-${start}`;
     if (films.has(key)) continue;
     const credits = body.match(/<credits>([\s\S]*?)<\/credits>/)?.[1] ?? '';
+    const evening = start >= win.primeStart;
     films.set(key, {
+      ...extras(body, credits, kind),
       id: `${slug(channelId)}-${slug(title)}-${new Date(start).toISOString().slice(11, 16).replace(':', '')}`,
       kind,
       title,
@@ -211,7 +264,8 @@ function parseSource(xml, source, win, channels, films, seenChannel) {
       genres: genres(cats),
       directors: kind === 'autre' ? [] : tags(credits, 'director').filter(Boolean),
       cast: kind === 'autre' ? [] : tags(credits, 'actor').filter(Boolean).slice(0, 6),
-      synopsis: tag(body, 'desc')?.slice(0, 320),
+      // Résumé plus long le soir (là où on lit les fiches), plus court en journée pour alléger le fichier
+      synopsis: tag(body, 'desc')?.slice(0, kind === 'autre' ? 200 : evening ? 900 : 320),
       poster: kind === 'autre' ? undefined : body.match(/<icon\b[^>]*src="([^"]+)"/)?.[1],
       part: start < win.primeStart ? 'jour' : start < win.primeEnd ? 'prime' : 'seconde',
     });
@@ -224,6 +278,7 @@ async function tmdb(path, params) {
   const url = new URL(`https://api.themoviedb.org/3${path}`);
   url.searchParams.set('api_key', TMDB_KEY);
   url.searchParams.set('language', 'fr-FR');
+  url.searchParams.set('include_video_language', 'fr,en');
   for (const [k, v] of Object.entries(params ?? {})) if (v) url.searchParams.set(k, v);
   const res = await fetch(url);
   if (!res.ok) throw new Error(`TMDB ${path} : HTTP ${res.status}`);
@@ -246,50 +301,94 @@ function mergeEpisodes(list) {
   return out;
 }
 
-async function enrichSerie(film) {
+const OMDB_KEY = process.env.OMDB_API_KEY;
+const IMG = (path, size) => (path ? `https://image.tmdb.org/t/p/${size}${path}` : undefined);
+
+/** Notes IMDb, Rotten Tomatoes et Metacritic via OMDb (optionnel, clé gratuite). */
+async function omdbRatings(imdbId) {
+  if (!OMDB_KEY || !imdbId) return [];
   try {
-    const hit = (await tmdb('/search/tv', { query: film.title })).results?.[0];
+    const res = await fetch(`https://www.omdbapi.com/?apikey=${OMDB_KEY}&i=${imdbId}`);
+    const d = await res.json();
+    return (d.Ratings ?? [])
+      .map((r) => {
+        if (r.Source === 'Internet Movie Database') return { source: 'IMDb', score: parseFloat(r.Value), display: r.Value.split('/')[0] };
+        if (r.Source === 'Rotten Tomatoes') return { source: 'Rotten Tomatoes', score: parseInt(r.Value, 10) / 10, display: r.Value };
+        if (r.Source === 'Metacritic') return { source: 'Metacritic', score: parseInt(r.Value, 10) / 10, display: r.Value.split('/')[0] };
+        return null;
+      })
+      .filter((r) => r && Number.isFinite(r.score));
+  } catch {
+    return [];
+  }
+}
+
+/** Champs communs film / série à partir d'une fiche TMDB détaillée. */
+function fromTmdb(film, d, { isTv }) {
+  const cast = (d.credits?.cast ?? []).slice(0, 12).map((c) => ({ name: c.name, role: c.character || undefined, photo: IMG(c.profile_path, 'w185') }));
+  const crewJobs = { Director: 'Réalisation', Screenplay: 'Scénario', Writer: 'Scénario', 'Original Music Composer': 'Musique', Producer: 'Production' };
+  const crew = (d.credits?.crew ?? []).filter((c) => crewJobs[c.job]).slice(0, 8).map((c) => ({ job: crewJobs[c.job], name: c.name }));
+  const createdBy = isTv ? (d.created_by ?? []).map((c) => c.name) : [];
+  const directors = createdBy.length ? createdBy : crew.filter((c) => c.job === 'Réalisation').map((c) => c.name);
+  const trailer = (d.videos?.results ?? []).find((v) => v.site === 'YouTube' && /Trailer|Teaser/.test(v.type));
+  const tmdbRating = d.vote_count > 50 ? [{ source: 'TMDB', score: Math.round(d.vote_average * 10) / 10, display: (Math.round(d.vote_average * 10) / 10).toFixed(1) }] : [];
+  // Signalétique française si le flux ne l'a pas donnée
+  let csa = film.csa;
+  if (!csa) {
+    const fr = isTv
+      ? d.content_ratings?.results?.find((r) => r.iso_3166_1 === 'FR')?.rating
+      : d.release_dates?.results?.find((r) => r.iso_3166_1 === 'FR')?.release_dates?.find((x) => x.certification)?.certification;
+    const m = fr?.match(/(10|12|16|18)/);
+    if (m) csa = `-${m[1]}`;
+  }
+  return {
+    ...film,
+    tmdbId: d.id,
+    csa,
+    originalTitle: (d.original_title || d.original_name) !== film.title ? d.original_title || d.original_name : undefined,
+    tagline: d.tagline || undefined,
+    year: film.year ?? (d.release_date || d.first_air_date)?.slice(0, 4),
+    country: film.country ?? d.production_countries?.map((c) => c.name).join(', ') ?? undefined,
+    genres: [...new Set([...film.genres, ...genres(d.genres?.map((g) => g.name) ?? [])])],
+    directors: film.directors.length ? film.directors : directors,
+    cast: film.cast.length ? film.cast : cast.map((c) => c.name).slice(0, 6),
+    castDetails: cast.length ? cast : film.castDetails,
+    crew: crew.length ? crew : film.crew,
+    synopsis: film.synopsis && film.synopsis.length > (d.overview?.length ?? 0) ? film.synopsis : d.overview || film.synopsis,
+    poster: film.poster ?? IMG(d.poster_path, 'w500'),
+    backdrop: IMG(d.backdrop_path, 'w780'),
+    trailer: trailer ? `https://www.youtube.com/watch?v=${trailer.key}` : undefined,
+    rating: tmdbRating[0]?.score,
+    ratings: [...(film.ratings ?? []), ...tmdbRating],
+    imdbId: d.imdb_id ?? d.external_ids?.imdb_id,
+  };
+}
+
+async function enrich(film) {
+  if (film.part === 'jour') return film; // on limite les appels à la soirée
+  const isTv = film.kind === 'serie';
+  if (film.kind !== 'film' && !isTv) return film; // docs, émissions, sport : on garde les infos XMLTV
+  try {
+    const search = isTv
+      ? await tmdb('/search/tv', { query: film.title })
+      : await tmdb('/search/movie', { query: film.title, year: film.year, region: 'FR' });
+    const hit = search.results?.[0];
     if (!hit) return film;
-    return {
-      ...film,
-      tmdbId: hit.id,
-      synopsis: film.synopsis || hit.overview,
-      poster: hit.poster_path ? `https://image.tmdb.org/t/p/w500${hit.poster_path}` : film.poster,
-      rating: hit.vote_count > 50 ? Math.round(hit.vote_average * 10) / 10 : undefined,
-    };
+    const d = isTv
+      ? await tmdb(`/tv/${hit.id}`, { append_to_response: 'credits,videos,content_ratings,external_ids' })
+      : await tmdb(`/movie/${hit.id}`, { append_to_response: 'credits,videos,release_dates' });
+    const out = fromTmdb(film, d, { isTv });
+    const extra = await omdbRatings(out.imdbId);
+    if (extra.length) out.ratings = [...extra, ...out.ratings.filter((r) => !extra.some((e) => e.source === r.source))];
+    return out;
   } catch (e) {
     console.warn(`TMDB : ${film.title} : ${e.message}`);
     return film;
   }
 }
 
-async function enrich(film) {
-  if (film.part === 'jour') return film; // on limite les appels à la soirée
-  if (film.kind === 'serie') return enrichSerie(film);
-  if (film.kind !== 'film') return film; // docs, émissions, sport : on garde les infos XMLTV
-  try {
-    const search = await tmdb('/search/movie', { query: film.title, year: film.year, region: 'FR' });
-    const hit = search.results?.[0];
-    if (!hit) return film;
-    const details = await tmdb(`/movie/${hit.id}`, { append_to_response: 'credits' });
-    const directors = details.credits?.crew?.filter((c) => c.job === 'Director').map((c) => c.name) ?? [];
-    const cast = details.credits?.cast?.slice(0, 6).map((c) => c.name) ?? [];
-    return {
-      ...film,
-      tmdbId: hit.id,
-      year: film.year ?? details.release_date?.slice(0, 4),
-      genres: film.genres.length ? film.genres : genres(details.genres?.map((g) => g.name) ?? []),
-      directors: film.directors.length ? film.directors : directors,
-      cast: film.cast.length ? film.cast : cast,
-      synopsis: details.overview || film.synopsis,
-      poster: details.poster_path ? `https://image.tmdb.org/t/p/w500${details.poster_path}` : film.poster,
-      rating: details.vote_count > 50 ? Math.round(details.vote_average * 10) / 10 : undefined,
-    };
-  } catch (e) {
-    console.warn(`TMDB : ${film.title} : ${e.message}`);
-    return film;
-  }
-}
+/** Champs propres à une diffusion (à garder quand on réutilise l'enrichissement d'un titre). */
+const pick = (f) => ({ id: f.id, channel: f.channel, channelId: f.channelId, bouquet: f.bouquet, start: f.start, stop: f.stop, durationMin: f.durationMin, part: f.part, subTitle: f.subTitle, season: f.season, episode: f.episode, flags: f.flags });
 
 // ---------- Main ----------
 
@@ -318,9 +417,17 @@ if (list.length === 0) {
 }
 
 if (TMDB_KEY) {
+  // Une seule recherche par titre (un même film peut passer plusieurs fois)
+  const cache = new Map();
   const out = [];
-  for (const f of list) out.push(await enrich(f)); // séquentiel pour rester sous la limite de l'API
+  for (const f of list) {
+    const key = `${f.kind}|${f.title}|${f.year ?? ''}`;
+    if (!cache.has(key)) cache.set(key, await enrich(f));
+    const e = cache.get(key);
+    out.push(e === f ? f : { ...e, ...pick(f) });
+  }
   list = out;
+  console.log(`TMDB : ${cache.size} titres enrichis`);
 }
 
 // ---------- Visuels : téléchargés et redimensionnés, servis par l'app elle-même ----------

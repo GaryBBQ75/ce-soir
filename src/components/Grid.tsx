@@ -16,6 +16,7 @@ interface Props {
   /** Hauteur fixe : seule la grille défile, pas la page */
   height: number;
   onOpen: (f: Film) => void;
+  onOpenChannel: (channelId: string) => void;
 }
 
 const PX_PER_MIN = 4.5;
@@ -23,7 +24,7 @@ const HOURS = 7;
 const ROW = 76;
 
 /** Grille horaire (test) : chaînes en lignes, la soirée défile de gauche à droite. */
-export function Grid({ profile, channels, films, at, now, kind, genre, height, onOpen }: Props) {
+export function Grid({ profile, channels, films, at, now, kind, genre, height, onOpen, onOpenChannel }: Props) {
   const scroller = useRef<HTMLDivElement>(null);
   // Début de la grille : la demi-heure pleine 1 h avant l'heure choisie
   const t0 = Math.floor((at - 60 * 60_000) / (30 * 60_000)) * 30 * 60_000;
@@ -57,9 +58,9 @@ export function Grid({ profile, channels, films, at, now, kind, genre, height, o
         {rows.length === 0 && <p className="muted small grid__empty">Aucune chaîne ne diffuse ce type de programme sur cette période.</p>}
         {rows.map((c) => (
           <div key={c.id} className="grid__row" style={{ height: ROW }}>
-            <span className="grid__logo">
+            <button className="grid__logo" onClick={() => onOpenChannel(c.id)} aria-label={`Programme de la journée sur ${c.name}`}>
               <ChannelLogo channel={c} fallback={c.name} size="md" />
-            </span>
+            </button>
             <div className="grid__track" style={{ width }}>
               {films
                 .filter((f) => f.channelId === c.id && visible(f))

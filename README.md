@@ -26,7 +26,9 @@ TMDB_API_KEY=xxx npm run fetch:tonight  # + notes et casting TMDB (optionnel)
 - **Catégories** : Films (cinéma et téléfilms), Séries, Docs & magazines, Divertissement, Spectacles & musique, Sport, Jeunesse, Info & débats (pas suggérée par défaut), et « autre » (météo, téléachat…) visible seulement dans la grille. Chaque programme a aussi des **sous-genres** (Comédie, Policier… / Foot, Rugby… / Nature, Histoire…) qui servent de 2e filtre et nourrissent l'algo. Les programmes enchaînés avec le même titre sont regroupés.
 - **Logos des chaînes** : téléchargés et redimensionnés comme les visuels.
 - **Visuels** : téléchargés depuis le flux, redimensionnés en WebP 400 px (sharp) et servis par l'app.
-- **TMDB** (optionnel) : notes et casting des films, affiches des séries. Clé gratuite sur https://www.themoviedb.org/settings/api
+- **Fiches détaillées** (flux XMLTV) : signalétique -10/-12/-16/-18, notes presse, pays, saison/épisode, rôles, présentateurs, scénaristes, inédit/rediffusion, HD, sous-titres.
+- **TMDB** (optionnel, secret `TMDB_API_KEY`) : pour les films et séries du soir, photos des acteurs, grande image, réalisation, scénario, musique, titre original, accroche, bande-annonce, note TMDB. Clé gratuite sur https://www.themoviedb.org/settings/api
+- **OMDb** (optionnel, secret `OMDB_API_KEY`) : notes IMDb, Rotten Tomatoes et Metacritic. Clé gratuite sur https://www.omdbapi.com/apikey.aspx
 
 ### Mise à jour automatique et mise en ligne
 
@@ -49,6 +51,10 @@ Le workflow `.github/workflows/tonight.yml` tourne chaque jour vers 6h, 12h, 15h
 - **Regarder en direct** : lien vers le site de la chaîne (TF1+, france.tv, M6+, arte.tv, myCANAL…), dans `src/links.ts`.
 
 > Limite actuelle : sans serveur, les notifications partent seulement quand l'app est ouverte ou en arrière-plan. Pour être prévenu app fermée, il faudra un petit serveur Web Push (par exemple sur Coolify). L'ajout à l'agenda marche dans tous les cas.
+
+- **Fiche programme** : grand visuel, logo de la chaîne (touche-le pour voir sa journée), signalétique, notes, casting avec photos, réalisation, détails, bande-annonce, regarder en direct, rappel, agenda.
+- **Journée d'une chaîne** : touche un logo (liste, grille ou fiche) pour voir tout son programme du jour.
+- **Installable** : « Ajouter à l'écran d'accueil » depuis le navigateur du téléphone. Le bouton retour ferme les fiches.
 
 ## Comment l'app apprend tes goûts
 
@@ -87,6 +93,5 @@ src/components/             fiche film, réglages des chaînes, affiche
 ## Prochaines étapes
 
 - Serveur Web Push pour les notifications app fermée
-- Manifeste PWA (installer l'app sur l'écran d'accueil)
 - Ajouter les plateformes de streaming
 - Compte optionnel pour synchroniser le profil entre appareils

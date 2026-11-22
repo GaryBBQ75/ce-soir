@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { KINDS, kindLabel, type Film, type Kind, type Signal, type Tonight } from './types';
 import { applySignal, isFollowed, loadProfile, rank, saveProfile, showKey, type Profile } from './profile';
 import { checkReminders, downloadIcs, type Alert } from './notify';
@@ -9,7 +9,9 @@ import { Progress } from './components/Progress';
 import { Channels } from './components/Channels';
 import { ChannelLogo } from './components/ChannelLogo';
 import { KindFilter, matchesFilter } from './components/KindFilter';
-import { durationLabel, hhmm, isOn, loadTonight, refTime, stopOf, todayLabel, type When } from './utils';
+import { ChannelSheet } from './components/ChannelSheet';
+import { CsaBadge, RatingPill } from './components/Badges';
+import { assetUrl, durationLabel, hhmm, isOn, loadTonight, refTime, stopOf, todayLabel, type When } from './utils';
 
 type Tab = 'pourtoi' | 'chaines';
 
@@ -34,6 +36,7 @@ export default function App() {
   const [genre, setGenre] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [settings, setSettings] = useState(false);
+  const [channelId, setChannelId] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [toast, setToast] = useState<string | null>(null);
@@ -45,6 +48,38 @@ export default function App() {
     const t = setInterval(() => setNow(Date.now()), 30_000);
     return () => clearInterval(t);
   }, []);
+
+  // Bouton retour du téléphone : ferme la fiche ouverte au lieu de quitter l'app
+  const sheetOpen = !!openId || !!channelId || settings;
+  const pushed = useRef(false);
+  useEffect(() => {
+    if (!sheetOpen) return;
+    try {
+      history.pushState({ sheet: true }, '');
+      pushed.current = true;
+    } catch {
+      return;
+    }
+    const onPop = () => {
+      pushed.current = false;
+      setOpenId(null);
+      setChannelId(null);
+      setSettings(false);
+    };
+    window.addEventListener('popstate', onPop);
+    return () => {
+      window.removeEventListener('popstate', onPop);
+      // Fiche fermée par le bouton Fermer : on retire l'étape ajoutée à l'historique
+      if (pushed.current) {
+        pushed.current = false;
+        try {
+          history.back();
+        } catch {
+          /* ignore */
+        }
+      }
+    };
+  }, [sheetOpen]);
 
   const update = (p: Profile) => {
     setProfile(p);
@@ -108,6 +143,12 @@ export default function App() {
     if (f.kind !== 'autre') update(applySignal(profile, f, 'open'));
     setOpenId(f.id);
   };
+  const toggleFavorite = (id: string) => {
+    const favorites = { ...profile.favorites };
+    if (favorites[id]) delete favorites[id];
+    else favorites[id] = true;
+    update({ ...profile, favorites });
+  };
   const toggleReminder = (f: Film) => {
     const reminders = { ...profile.reminders };
     const on = !reminders[f.id];
@@ -127,6 +168,11 @@ export default function App() {
 
   return (
     <main className="screen">
+      {tab === 'pourtoi' && top[0] && (top[0].film.backdrop || top[0].film.poster) && (
+        <div className="ambient" aria-hidden="true">
+          <img src={assetUrl((top[0].film.backdrop || top[0].film.poster)!)} alt="" />
+        </div>
+      )}
       <header className="header">
         <div>
           <span className="muted small">{todayLabel()}</span>
@@ -213,6 +259,10 @@ export default function App() {
                   <article key={film.id} className="card">
                     <button className="card__main" onClick={() => open(film)}>
                       <Poster title={film.title} poster={film.poster} big className="card__poster" />
+                      <span className="card__corner">
+                        <RatingPill film={film} />
+                        <CsaBadge csa={film.csa} size="sm" />
+                      </span>
                       <span className="card__badge">
                         <ChannelLogo channel={channelById.get(film.channelId)} fallback={film.channel} size="xs" />
                         {isOn(film, now) && <span className="live-dot" aria-hidden="true" />}
@@ -267,10 +317,13 @@ export default function App() {
       )}
 
       {tab === 'chaines' && tonight && (
-        <Channels profile={profile} channels={tonight.channels} films={tonight.films} at={at} now={now} onOpen={open} onChange={update} />
+        <Channels profile={profile} channels={tonight.channels} films={tonight.films} at={at} now={now} onOpen={open} onOpenChannel={setChannelId} onChange={update} />
       )}
 
       {tonight?.source === 'sample' && <p className="muted small center">Soirée d'exemple, pas le vrai programme.</p>}
+      {tonight?.source === 'xmltv' && (
+        <p className="muted small center">Programme mis à jour à {hhmm(tonight.generatedAt)}</p>
+      )}
 
       <nav className="tabbar" aria-label="Navigation">
         <button aria-current={tab === 'pourtoi' ? 'page' : undefined} className={tab === 'pourtoi' ? 'is-on' : ''} onClick={() => setTab('pourtoi')}>
@@ -288,6 +341,18 @@ export default function App() {
         </button>
       </nav>
 
+      {channelId && channelById.get(channelId) && (
+        <ChannelSheet
+          channel={channelById.get(channelId)!}
+          films={tonight?.films ?? []}
+          now={now}
+          profile={profile}
+          onOpen={open}
+          onToggleFavorite={toggleFavorite}
+          onClose={() => setChannelId(null)}
+        />
+      )}
+
       {openFilm && (
         <FilmSheet
           film={openFilm}
@@ -304,6 +369,11 @@ export default function App() {
           onAgenda={() => flash(downloadIcs(openFilm, profile.notifyBefore) ? 'Fichier agenda téléchargé' : 'Téléchargement impossible ici')}
           onFollow={(on, notify) => follow(openFilm, on, notify)}
           onOpen={open}
+          channel={channelById.get(openFilm.channelId)}
+          onOpenChannel={(id) => {
+            setOpenId(null);
+            setChannelId(id);
+          }}
         />
       )}
 

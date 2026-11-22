@@ -169,6 +169,9 @@ export function Settings({ profile, channels, onChange, onClose }: Props) {
             {resetArmed ? 'Confirmer : effacer mes goûts ?' : 'Effacer mes goûts'}
           </button>
         </section>
+        <p className="muted small center">
+          Programmes : xmltvfr.fr · Films et séries : TMDB (cette app n'est ni approuvée ni certifiée par TMDB)
+        </p>
     </Sheet>
   );
 }

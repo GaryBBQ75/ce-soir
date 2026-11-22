@@ -58,6 +58,24 @@ export interface Film {
   poster?: string;
   /** Note TMDB sur 10, si dispo */
   rating?: number;
+  /** Notes de différentes sources (presse, IMDb, Rotten Tomatoes, Metacritic, TMDB) ; score sur 10 */
+  ratings?: { source: string; score: number; display: string }[];
+  /** Signalétique jeunesse : -10, -12, -16, -18 */
+  csa?: string;
+  country?: string;
+  originalTitle?: string;
+  tagline?: string;
+  season?: number;
+  episode?: number;
+  /** Image large (paysage) pour le haut de la fiche */
+  backdrop?: string;
+  /** Casting détaillé : rôle et photo si dispo */
+  castDetails?: { name: string; role?: string; photo?: string }[];
+  /** Autres crédits : scénario, musique, présentation… */
+  crew?: { job: string; name: string }[];
+  /** Lien vers la bande-annonce */
+  trailer?: string;
+  flags?: { rerun?: boolean; premiere?: boolean; hd?: boolean; subtitles?: boolean; audioDescription?: boolean; vost?: boolean };
   part: Part;
 }
 

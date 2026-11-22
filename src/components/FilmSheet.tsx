@@ -1,14 +1,16 @@
-import { kindLabel, type Film, type Signal } from '../types';
+import { KINDS, type Channel, type Film, type Signal } from '../types';
 import { showKey, type Profile } from '../profile';
-import { Poster } from './Poster';
 import { Sheet } from './Sheet';
 import { Progress } from './Progress';
-import { durationLabel, hhmm, isOn } from '../utils';
+import { ChannelLogo } from './ChannelLogo';
+import { CsaBadge, Flags, Ratings } from './Badges';
+import { assetUrl, colorsFor, durationLabel, hhmm, isOn } from '../utils';
 import { liveLink } from '../links';
 
 interface Props {
   film: Film;
   films: Film[];
+  channel?: Channel;
   now: number;
   profile: Profile;
   onSignal: (s: Signal) => void;
@@ -18,96 +20,176 @@ interface Props {
   onAgenda: () => void;
   onFollow: (follow: boolean, notify: boolean) => void;
   onOpen: (f: Film) => void;
+  onOpenChannel: (channelId: string) => void;
 }
 
-export function FilmSheet({ film, films, now, profile, onSignal, onHide, onClose, onToggleReminder, onAgenda, onFollow, onOpen }: Props) {
+const initials = (name: string) =>
+  name
+    .split(/\s+/)
+    .map((p) => p[0])
+    .slice(0, 2)
+    .join('')
+    .toUpperCase();
+
+export function FilmSheet(p: Props) {
+  const { film, films, channel, now, profile } = p;
   const key = showKey(film.title);
   const follow = profile.followed[key];
   const reminded = !!profile.reminders[film.id];
   const live = liveLink(film.channel);
   const onAir = isOn(film, now);
   const started = Date.parse(film.start) <= now;
-  // Les autres diffusions du même programme aujourd'hui
   const others = films.filter((f) => f.id !== film.id && showKey(f.title) === key && Date.parse(f.start) > now).slice(0, 4);
+  const hero = film.backdrop ?? film.poster;
+  const { bg } = colorsFor(film.title);
+  const kindLabel = KINDS.find((k) => k.id === film.kind)?.label ?? 'Programme';
+
+  // Casting : détaillé si dispo, sinon les noms simples
+  const cast = film.castDetails ?? film.cast.map((name) => ({ name, role: undefined as string | undefined, photo: undefined as string | undefined }));
+  const crew = [
+    ...film.directors.map((name) => ({ job: film.kind === 'serie' ? 'Création' : 'Réalisation', name })),
+    ...(film.crew ?? []).filter((c) => !film.directors.includes(c.name)),
+  ];
+  const meta = [
+    kindLabel,
+    film.genres.filter((g) => g !== 'Documentaire').slice(0, 3).join(', '),
+    film.year,
+    film.country,
+    durationLabel(film),
+  ].filter(Boolean);
+  const episode =
+    film.season || film.episode
+      ? `${film.season ? `Saison ${film.season}` : ''}${film.season && film.episode ? ' · ' : ''}${film.episode ? `Épisode ${film.episode}` : ''}`
+      : null;
 
   return (
-    <Sheet label={film.title} onClose={onClose}>
-        <div className="sheet__head">
-          <Poster title={film.title} poster={film.poster} className="sheet__poster" />
-          <div className="stack-sm">
-            <h2 className="sheet__title">{film.title}</h2>
-            {film.subTitle && <span className="muted">{film.subTitle}</span>}
-            <div className="tags">
-              <span className="tag tag--accent">{film.channel} · {hhmm(film.start)}</span>
-              <span className="tag">{kindLabel(film.kind)}{film.episodes && film.episodes > 1 ? ` · ${film.episodes} épisodes` : ''}</span>
-              {durationLabel(film) && <span className="tag">{durationLabel(film)}</span>}
-              {film.year && <span className="tag">{film.year}</span>}
-              {film.rating ? <span className="tag">{film.rating.toFixed(1)}/10</span> : null}
-            </div>
+    <Sheet label={film.title} onClose={p.onClose}>
+      {/* Visuel en grand, fondu dans le fond de la fiche */}
+      <div className="hero" style={{ backgroundColor: bg }}>
+        {hero && <img className="hero__img" src={assetUrl(hero)} alt="" />}
+        <div className="hero__shade" />
+        <div className="hero__content">
+          <div className="hero__top">
+            <button className="hero__channel" onClick={() => p.onOpenChannel(film.channelId)} aria-label={`Programme de ${film.channel}`}>
+              <ChannelLogo channel={channel} fallback={film.channel} size="sm" />
+              <span>
+                {onAir && <span className="live-dot" aria-hidden="true" />}
+                {hhmm(film.start)}
+              </span>
+            </button>
+            <CsaBadge csa={film.csa} />
           </div>
+          <h2 className="hero__title">{film.title}</h2>
+          {film.originalTitle && <span className="hero__original">{film.originalTitle}</span>}
         </div>
+      </div>
 
-        <Progress film={film} now={now} times />
-
-        {live && (
-          <a className="btn btn--live btn--wide" href={live.url} target="_blank" rel="noreferrer">
-            {onAir && <span className="live-dot" aria-hidden="true" />}
-            {onAir ? `Regarder en direct sur ${live.label}` : `Ouvrir ${live.label}`}
-          </a>
-        )}
-
-        {film.genres.length > 0 && <p className="muted small">{film.genres.join(' · ')}</p>}
-        {film.synopsis && <p className="sheet__synopsis">{film.synopsis}</p>}
-        {(film.directors.length > 0 || film.cast.length > 0) && (
-          <p className="muted small">
-            {film.directors.length > 0 && <>De {film.directors.join(', ')}</>}
-            {film.directors.length > 0 && film.cast.length > 0 && ', '}
-            {film.cast.length > 0 && <>avec {film.cast.slice(0, 4).join(', ')}</>}
+      <div className="sheet__section">
+        <p className="meta-line">{meta.join(' · ')}</p>
+        {(film.subTitle || episode) && (
+          <p className="episode-line">
+            {episode && <strong>{episode}</strong>}
+            {episode && film.subTitle && ' · '}
+            {film.subTitle}
           </p>
         )}
+        <Flags film={film} />
+        <Progress film={film} now={now} times />
+      </div>
 
+      {/* Actions principales */}
+      <div className="actions">
+        {live && (
+          <a className="btn btn--live" href={live.url} target="_blank" rel="noreferrer">
+            {onAir && <span className="live-dot" aria-hidden="true" />}
+            {onAir ? 'Regarder en direct' : `Ouvrir ${live.label}`}
+          </a>
+        )}
+        {film.trailer && (
+          <a className="btn btn--ghost" href={film.trailer} target="_blank" rel="noreferrer">
+            <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+            Bande-annonce
+          </a>
+        )}
         {!started && (
-          <div className="row">
-            <button className={`btn ${reminded ? 'btn--primary' : 'btn--ghost'}`} aria-pressed={reminded} onClick={onToggleReminder}>
-              {reminded ? `Rappel ${profile.notifyBefore} min avant` : 'Me rappeler'}
-            </button>
-            <button className="btn btn--ghost" onClick={onAgenda}>Ajouter à l'agenda</button>
-          </div>
+          <button className={`btn ${reminded ? 'btn--primary' : 'btn--ghost'}`} aria-pressed={reminded} onClick={p.onToggleReminder}>
+            {reminded ? `Rappel ${profile.notifyBefore} min avant` : 'Me rappeler'}
+          </button>
         )}
-
-        {film.kind !== 'film' && (
-          <div className="follow">
-            <button className={`btn btn--wide ${follow ? 'btn--primary' : 'btn--ghost'}`} aria-pressed={!!follow} onClick={() => onFollow(!follow, follow?.notify ?? true)}>
-              {follow ? 'Émission suivie' : 'Suivre cette émission'}
-            </button>
-            {follow && (
-              <label className="switch-row">
-                <span className="small">Me prévenir à chaque diffusion</span>
-                <input type="checkbox" className="switch" checked={follow.notify} onChange={() => onFollow(true, !follow.notify)} />
-              </label>
-            )}
-          </div>
+        {!started && (
+          <button className="btn btn--ghost" onClick={p.onAgenda}>Agenda</button>
         )}
+      </div>
 
-        {others.length > 0 && (
-          <div className="stack-sm">
-            <span className="eyebrow">Autres diffusions aujourd'hui</span>
-            {others.map((o) => (
-              <button key={o.id} className="other" onClick={() => onOpen(o)}>
-                <strong>{hhmm(o.start)}</strong> {o.channel}
-                {o.subTitle && <span className="muted"> · {o.subTitle}</span>}
-              </button>
+      <Ratings film={film} />
+
+      {film.tagline && <p className="tagline">« {film.tagline} »</p>}
+      {film.synopsis && <p className="sheet__synopsis">{film.synopsis}</p>}
+
+      {cast.length > 0 && (
+        <div className="sheet__section">
+          <h3 className="eyebrow">{film.kind === 'divertissement' || film.kind === 'doc' ? 'Avec' : 'Casting'}</h3>
+          <div className="cast">
+            {cast.slice(0, 12).map((c) => (
+              <div key={c.name} className="person">
+                <span className="person__photo" aria-hidden="true">
+                  {c.photo ? <img src={c.photo} alt="" loading="lazy" /> : <span>{initials(c.name)}</span>}
+                </span>
+                <span className="person__name">{c.name}</span>
+                {c.role && <span className="person__role">{c.role}</span>}
+              </div>
             ))}
           </div>
-        )}
+        </div>
+      )}
 
-        {film.kind !== 'autre' && (
+      {crew.length > 0 && (
+        <dl className="credits">
+          {crew.slice(0, 8).map((c, i) => (
+            <div key={c.job + c.name + i}>
+              <dt>{c.job}</dt>
+              <dd>{c.name}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+
+      {film.kind !== 'film' && film.kind !== 'autre' && (
+        <div className="follow">
+          <button className={`btn btn--wide ${follow ? 'btn--primary' : 'btn--ghost'}`} aria-pressed={!!follow} onClick={() => p.onFollow(!follow, follow?.notify ?? true)}>
+            {follow ? 'Émission suivie' : 'Suivre cette émission'}
+          </button>
+          {follow && (
+            <label className="switch-row">
+              <span className="small">Me prévenir à chaque diffusion</span>
+              <input type="checkbox" className="switch" checked={follow.notify} onChange={() => p.onFollow(true, !follow.notify)} />
+            </label>
+          )}
+        </div>
+      )}
+
+      {others.length > 0 && (
+        <div className="sheet__section">
+          <h3 className="eyebrow">Autres diffusions aujourd'hui</h3>
+          {others.map((o) => (
+            <button key={o.id} className="other" onClick={() => p.onOpen(o)}>
+              <strong>{hhmm(o.start)}</strong> {o.channel}
+              {o.subTitle && <span className="muted"> · {o.subTitle}</span>}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {film.kind !== 'autre' && (
+        <div className="taste">
+          <span className="muted small">Ton avis affine tes suggestions</span>
           <div className="row">
-            <button className="btn btn--ghost btn--sm" onClick={() => onSignal('like')}>J'aime</button>
-            <button className="btn btn--ghost btn--sm" onClick={() => onSignal('watched')}>Déjà vu</button>
-            <button className="btn btn--ghost btn--sm" onClick={onHide}>Pas pour moi</button>
+            <button className="btn btn--ghost btn--sm" onClick={() => p.onSignal('like')}>J'aime</button>
+            <button className="btn btn--ghost btn--sm" onClick={() => p.onSignal('watched')}>Déjà vu</button>
+            <button className="btn btn--ghost btn--sm" onClick={p.onHide}>Pas pour moi</button>
           </div>
-        )}
+        </div>
+      )}
     </Sheet>
   );
 }
