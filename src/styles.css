@@ -428,3 +428,9 @@ button { font: inherit; color: inherit; }
 .grid__img::after { background: linear-gradient(to right, rgba(23, 23, 26, 0) 20%, rgba(23, 23, 26, 0.85) 75%, var(--surface) 100%); }
 
 .grid__text { width: fit-content; max-width: min(100%, 260px); }
+
+/* Grille : le titre suit le défilement (sticky), donc pas de rognage sur la case */
+.grid__block { overflow: visible; }
+.grid__img { border-radius: 10px 0 0 10px; }
+/* Journée d'une chaîne : vignettes sans texte quand il n'y a pas d'image */
+.day__poster.poster--type span { display: none; }

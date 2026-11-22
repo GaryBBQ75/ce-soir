@@ -22,13 +22,15 @@ interface Props {
 /** La journée d'une chaîne, du matin à la nuit, centrée sur ce qui passe maintenant. */
 export function ChannelSheet({ channel, films, now, profile, onOpen, onToggleFavorite, onClose }: Props) {
   const list = films.filter((f) => f.channelId === channel.id).sort((a, b) => a.start.localeCompare(b.start));
-  const current = list.find((f) => isOn(f, now)) ?? list.find((f) => Date.parse(f.start) > now);
+  const current = list.find((f) => isOn(f, now)) ?? list.find((f) => Date.parse(f.start) > now) ?? list[list.length - 1];
   const currentRef = useRef<HTMLLIElement>(null);
   const live = liveLink(channel.name);
   const fav = !!profile.favorites[channel.id];
 
+  // On ouvre la journée sur ce qui passe maintenant (après l'animation d'ouverture)
   useEffect(() => {
-    currentRef.current?.scrollIntoView({ block: 'start' });
+    const t = setTimeout(() => currentRef.current?.scrollIntoView({ block: 'center' }), 250);
+    return () => clearTimeout(t);
   }, []);
 
   return (
