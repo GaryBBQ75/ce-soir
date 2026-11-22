@@ -253,7 +253,7 @@ function parseSource(xml, source, win, channels, films, seenChannel) {
     if (/adulte|charme|[ée]rotique|\bx\b/i.test(cats.join(' '))) continue;
     if (upcoming) {
       if (kind === 'autre' || kind === 'info') continue;
-      const k = showKey(tag(body, 'title') ?? '');
+      const k = showKey((tag(body, 'title') ?? '').replace(/\s*\*\d{4}$/, ''));
       if (!k) continue;
       const l = later.get(k) ?? { kind, list: [] };
       l.list.push([channelId, new Date(start).toISOString()]);
@@ -263,7 +263,7 @@ function parseSource(xml, source, win, channels, films, seenChannel) {
     }
 
     const stop = parseTime(attr(m[1], 'stop'));
-    const title = tag(body, 'title') ?? 'Sans titre';
+    const title = (tag(body, 'title') ?? 'Sans titre').replace(/\s*\*\d{4}$/, '');
     const key = `${channelId}-${start}`;
     if (films.has(key)) continue;
     const credits = body.match(/<credits>([\s\S]*?)<\/credits>/)?.[1] ?? '';

@@ -24,7 +24,7 @@ export interface Profile {
   reminders: Record<string, true>;
   signals: number;
   /** Émissions suivies (récurrentes), par titre normalisé */
-  followed: Record<string, { title: string; notify: boolean; /** film : alerte quand il repasse */ film?: boolean }>;
+  followed: Record<string, { title: string; notify: boolean; /** film : alerte quand il repasse */ film?: boolean; since?: number }>;
   /** Ordre personnalisé des chaînes (ids) ; vide = ordre des numéros */
   channelOrder: string[];
   /** Prévenir combien de minutes avant le début */
@@ -37,7 +37,11 @@ export interface Profile {
 export const showKey = (title: string) =>
   title.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 
-export const isFollowed = (p: Profile, f: Pick<Film, 'title'>) => !!p.followed[showKey(f.title)];
+/** Suivi, et pour un film en alerte : seulement les diffusions annoncées après l'alerte (pas celle qu'on regardait). */
+export const isFollowed = (p: Profile, f: Pick<Film, 'title' | 'start'>) => {
+  const e = p.followed[showKey(f.title)];
+  return !!e && (!e.since || Date.parse(f.start) > e.since + 3600_000);
+};
 
 const KEY = 'ce-soir.profile.v1';
 
@@ -149,7 +153,7 @@ const LABEL: Record<Prefix, (v: string) => string> = {
 };
 
 function reasonFor(p: Profile, f: Film): string {
-  if (isFollowed(p, f)) return 'Tu suis cette émission';
+  if (isFollowed(p, f)) return f.kind === 'film' ? 'Il repasse : tu avais demandé une alerte' : 'Tu suis cette émission';
   let best: [string, number] | null = null;
   for (const t of traits(f)) {
     const c = (p.weights[t] ?? 0) * factorOf(t);

@@ -1,5 +1,5 @@
 import type { Film } from './types';
-import { showKey, type Profile } from './profile';
+import { isFollowed, showKey, type Profile } from './profile';
 import { hhmm } from './utils';
 
 /**
@@ -64,7 +64,7 @@ function saveSent(s: Record<string, number>) {
 
 /** Programmes pour lesquels l'utilisateur veut être prévenu. */
 export function watchedFilms(p: Profile, films: Film[]) {
-  return films.filter((f) => p.reminders[f.id] || p.followed[showKey(f.title)]?.notify);
+  return films.filter((f) => p.reminders[f.id] || (isFollowed(p, f) && p.followed[showKey(f.title)]?.notify));
 }
 
 export interface Alert {

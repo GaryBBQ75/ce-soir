@@ -47,7 +47,7 @@ export async function loadTonight(): Promise<Tonight> {
   if (!res.ok) throw new Error(`tonight.json introuvable (${res.status})`);
   const data = (await res.json()) as Tonight;
   // Compatibilité avec les anciens fichiers (films seulement, sans liste de chaînes)
-  const films = data.films.map((f) => ({ ...f, kind: f.kind ?? 'film', genres: f.genres ?? [], directors: f.directors ?? [], cast: f.cast ?? [] }));
+  const films = data.films.map((f) => ({ ...f, title: f.title.replace(/\s*\*\d{4}$/, ''), kind: f.kind ?? 'film', genres: f.genres ?? [], directors: f.directors ?? [], cast: f.cast ?? [] }));
   const channels =
     data.channels ??
     [...new Map(films.map((f) => [f.channelId, { id: f.channelId, name: f.channel, bouquet: f.bouquet }])).values()];

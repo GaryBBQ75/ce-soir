@@ -1,7 +1,7 @@
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import type { Channel, Film, Kind } from '../types';
 import { KindFilter, matchesFilter } from './KindFilter';
-import { channelOn, isFollowed, score, showKey, type Profile } from '../profile';
+import { channelOn, isFollowed, score, type Profile } from '../profile';
 import { hhmm, isOn, stopOf } from '../utils';
 import { ChannelLogo } from './ChannelLogo';
 import { Poster } from './Poster';
@@ -197,7 +197,7 @@ export function Channels({ profile, channels, films, at, now, onOpen, onOpenChan
                           {next && (
                             <span className="channel__next">
                               Puis {hhmm(next.start)} · {next.title}
-                              {profile.followed[showKey(next.title)] ? ' · suivi' : ''}
+                              {isFollowed(profile, next) ? ' · suivi' : ''}
                             </span>
                           )}
                         </button>

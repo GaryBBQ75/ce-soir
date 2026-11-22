@@ -120,6 +120,7 @@ export default function App() {
       .filter(([k]) => !live.has(k))
       .map(([k, v]) => {
         const next = nextAirings(k, showKey, tonight, now).find((a) => {
+          if (v.since && Date.parse(a.start) <= v.since + 3600_000) return false;
           const c = chans.get(a.channelId);
           return c && channelReceived(profile, c.id, c.bouquet);
         });
@@ -185,7 +186,7 @@ export default function App() {
   const follow = (f: Film, on: boolean, notify: boolean) => {
     const followed = { ...profile.followed };
     const key = showKey(f.title);
-    if (on) followed[key] = { title: f.title, notify, ...(f.kind === 'film' ? { film: true } : {}) };
+    if (on) followed[key] = { title: f.title, notify, ...(f.kind === 'film' ? { film: true, since: Date.parse(f.start) } : {}) };
     else delete followed[key];
     update({ ...(on && !profile.followed[key] ? applySignal(profile, f, 'like') : profile), followed });
     if (on !== !!profile.followed[key])
