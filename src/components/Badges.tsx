@@ -12,6 +12,18 @@ export function CsaBadge({ csa, size = 'md' }: { csa?: string; size?: 'sm' | 'md
 
 const SHORT: Record<string, string> = { 'Rotten Tomatoes': 'RT', Metacritic: 'MC' };
 
+/** Noms lisibles des sources de notes du flux XMLTV */
+const SOURCE: Record<string, string> = {
+  allocine: 'AlloCiné',
+  teleloisirs: 'Télé-Loisirs',
+  telerama: 'Télérama',
+  tele7jours: 'Télé 7 Jours',
+  telestar: 'Télé Star',
+  programmetv: 'Programme TV',
+  imdb: 'IMDb',
+};
+export const sourceLabel = (s: string) => SOURCE[s.toLowerCase().replace(/[^a-z0-9]/g, '')] ?? s;
+
 /** Meilleure note dispo, pour les cartes (une seule, courte). */
 export function bestRating(f: Film) {
   const r = f.ratings ?? (f.rating ? [{ source: 'TMDB', score: f.rating, display: f.rating.toFixed(1) }] : []);
@@ -27,7 +39,7 @@ export function RatingPill({ film }: { film: Film }) {
         <path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z" />
       </svg>
       {r.display}
-      <span className="rating-pill__src">{SHORT[r.source] ?? r.source}</span>
+      <span className="rating-pill__src">{SHORT[r.source] ?? sourceLabel(r.source)}</span>
     </span>
   );
 }
@@ -44,7 +56,7 @@ export function Ratings({ film }: { film: Film }) {
           <span className="rating__bar" aria-hidden="true">
             <span style={{ width: `${Math.max(0, Math.min(10, r.score)) * 10}%` }} />
           </span>
-          <span className="rating__src">{r.source}</span>
+          <span className="rating__src">{sourceLabel(r.source)}</span>
         </div>
       ))}
     </div>
