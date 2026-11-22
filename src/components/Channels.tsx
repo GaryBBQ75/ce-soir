@@ -209,14 +209,14 @@ export function Channels({ profile, channels, films, at, now, onOpen, onOpenChan
                       {current ? (
                         <button className="channel__body" onClick={() => onOpen(current)}>
                           <span className="channel__name">
-                            {c.name}
+                            {c.name} · {hhmm(current.start)}–{hhmm(new Date(stopOf(current)).toISOString())}
                             {current.csa && <CsaBadge csa={current.csa} size="sm" />}
                           </span>
                           <span className="channel__title">
                             {isFollowed(profile, current) && <span className="badge">Suivi</span>}
                             {current.title}
                           </span>
-                          <Progress film={current} now={now} times />
+                          <Progress film={current} now={now} />
                           {next && (
                             <span className="channel__next">
                               Puis {hhmm(next.start)} · {next.title}

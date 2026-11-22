@@ -126,7 +126,7 @@ export default function App() {
   const favCount = Object.keys(profile.favorites).length;
 
   const signal = (f: Film, s: Signal) => {
-    let p = applySignal(profile, f, s);
+    let p = { ...applySignal(profile, f, s), hintDismissed: true };
     if (s === 'remind') {
       const reminders = { ...p.reminders };
       if (reminders[f.id]) delete reminders[f.id];
@@ -136,7 +136,7 @@ export default function App() {
     update(p);
   };
   const hide = (f: Film) => {
-    update({ ...applySignal(profile, f, 'pass'), hidden: { ...profile.hidden, [f.id]: true } });
+    update({ ...applySignal(profile, f, 'pass'), hidden: { ...profile.hidden, [f.id]: true }, hintDismissed: true });
     setOpenId(null);
   };
   const open = (f: Film) => {
@@ -178,6 +178,26 @@ export default function App() {
           <span className="muted small">{todayLabel()}</span>
           <h1 className="title title--xl">{tab === 'pourtoi' ? 'Ce soir' : 'Chaînes'}</h1>
         </div>
+        <div className="header__actions">
+        <button
+          className={`icon-btn ${profile.scope === 'favorites' ? 'is-on' : ''}`}
+          aria-pressed={profile.scope === 'favorites'}
+          aria-label={profile.scope === 'favorites' ? 'Afficher toutes mes chaînes' : 'Afficher seulement mes chaînes favorites'}
+          onClick={() => {
+            if (profile.scope === 'favorites') return update({ ...profile, scope: 'all' });
+            if (favCount === 0) {
+              setTab('chaines');
+              flash('Touche l\'étoile d\'une chaîne pour l\'ajouter à tes favorites');
+              return;
+            }
+            update({ ...profile, scope: 'favorites' });
+            flash(`Seulement tes ${favCount} chaînes favorites`);
+          }}
+        >
+          <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill={profile.scope === 'favorites' ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
+            <path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z" />
+          </svg>
+        </button>
         <button className="icon-btn" aria-label="Mes chaînes et réglages" onClick={() => setSettings(true)}>
           <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12" />
@@ -186,7 +206,13 @@ export default function App() {
             <circle cx="18" cy="18" r="2" />
           </svg>
         </button>
+        </div>
       </header>
+      {profile.scope === 'favorites' && (
+        <button className="scope-note" onClick={() => update({ ...profile, scope: 'all' })}>
+          ★ Mes {favCount} chaînes favorites · <u>tout afficher</u>
+        </button>
+      )}
 
       <div className="segmented" role="group" aria-label="Moment">
         {WHEN.map((w) => (
@@ -195,26 +221,6 @@ export default function App() {
             {w.label}
           </button>
         ))}
-      </div>
-
-      <div className="scope" role="group" aria-label="Chaînes affichées">
-        <button aria-pressed={profile.scope === 'all'} className={profile.scope === 'all' ? 'is-on' : ''} onClick={() => update({ ...profile, scope: 'all' })}>
-          Toutes mes chaînes
-        </button>
-        <button
-          aria-pressed={profile.scope === 'favorites'}
-          className={profile.scope === 'favorites' ? 'is-on' : ''}
-          onClick={() => {
-            if (favCount === 0) {
-              setTab('chaines');
-              flash('Touche l\'étoile d\'une chaîne pour l\'ajouter à tes favorites');
-              return;
-            }
-            update({ ...profile, scope: 'favorites' });
-          }}
-        >
-          ★ Mes favorites{favCount ? ` · ${favCount}` : ''}
-        </button>
       </div>
 
       {followedLive.length > 0 && (
@@ -258,15 +264,17 @@ export default function App() {
                 {top.map(({ film, reason, discovery }) => (
                   <article key={film.id} className="card">
                     <button className="card__main" onClick={() => open(film)}>
-                      <Poster title={film.title} poster={film.poster} big className="card__poster" />
-                      <span className="card__corner">
-                        <RatingPill film={film} />
-                        <CsaBadge csa={film.csa} size="sm" />
-                      </span>
-                      <span className="card__badge">
-                        <ChannelLogo channel={channelById.get(film.channelId)} fallback={film.channel} size="xs" />
-                        {isOn(film, now) && <span className="live-dot" aria-hidden="true" />}
-                        {hhmm(film.start)}
+                      <span className="card__media">
+                        <Poster title={film.title} poster={film.poster} big className="card__poster" />
+                        <span className="card__corner">
+                          <RatingPill film={film} />
+                          <CsaBadge csa={film.csa} size="sm" />
+                        </span>
+                        <span className="card__badge">
+                          <ChannelLogo channel={channelById.get(film.channelId)} fallback={film.channel} size="xs" />
+                          {isOn(film, now) && <span className="live-dot" aria-hidden="true" />}
+                          {hhmm(film.start)}
+                        </span>
                       </span>
                       <span className="card__body">
                         <span className={`card__reason ${discovery ? 'is-discovery' : ''}`}>{reason}</span>

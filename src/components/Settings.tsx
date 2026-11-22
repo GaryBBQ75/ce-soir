@@ -37,8 +37,9 @@ export function Settings({ profile, channels, onChange, onClose }: Props) {
   };
 
   return (
-    <Sheet label="Réglages" title="Réglages" onClose={onClose}>
-        <h2 className="sheet__title">Mes chaînes</h2>
+    <Sheet label="Réglages" onClose={onClose}>
+        <h2 className="sheet__heading">Réglages</h2>
+        <h3 className="eyebrow">Mes chaînes</h3>
         <p className="muted small">Active un bouquet ou un thème entier, ou choisis tes chaînes une par une.</p>
 
         {BOUQUETS.map((b) => {

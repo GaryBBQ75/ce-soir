@@ -85,6 +85,7 @@ const decode = (s) =>
     .replace(/&quot;/g, '"')
     .replace(/&apos;|&#0?39;/g, "'")
     .replace(/&#(\d+);/g, (_, c) => String.fromCharCode(+c))
+    .replace(/\\"/g, '"')
     .replace(/\s+/g, ' ')
     .trim();
 
@@ -290,7 +291,9 @@ function mergeEpisodes(list) {
   const out = [];
   for (const f of list) {
     const prev = out.findLast((p) => p.channelId === f.channelId);
-    if (prev && prev.kind === f.kind && prev.title === f.title && prev.stop && Math.abs(Date.parse(f.start) - Date.parse(prev.stop)) < 10 * 60000) {
+    // On regroupe au plus 3 h d'affilée : au-delà, c'est une boucle de rediffusions, pas un bloc à regarder
+    const merged = prev?.stop ? (Date.parse(f.stop ?? f.start) - Date.parse(prev.start)) / 60000 : Infinity;
+    if (prev && prev.kind === f.kind && prev.title === f.title && prev.stop && merged <= 180 && Math.abs(Date.parse(f.start) - Date.parse(prev.stop)) < 10 * 60000) {
       prev.stop = f.stop ?? prev.stop;
       prev.durationMin = Math.round((Date.parse(prev.stop) - Date.parse(prev.start)) / 60000);
       prev.episodes = (prev.episodes ?? 1) + 1;

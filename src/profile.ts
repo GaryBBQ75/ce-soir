@@ -138,6 +138,8 @@ export interface Ranked {
   discovery: boolean;
 }
 
+const SOURCE_NAMES: Record<string, string> = { allocine: 'AlloCiné', teleloisirs: 'Télé-Loisirs', telerama: 'Télérama' };
+
 const LABEL: Record<Prefix, (v: string) => string> = {
   k: (v) => `Tu aimes : ${KINDS.find((k) => k.id === v)?.plural ?? v}`,
   g: (v) => `Parce que tu aimes : ${v}`,
@@ -154,8 +156,13 @@ function reasonFor(p: Profile, f: Film): string {
     if (c > 0.3 && (!best || c > best[1])) best = [t, c];
   }
   if (best) return LABEL[best[0].slice(0, 1) as Prefix](best[0].slice(2));
-  if (f.rating && f.rating >= 7.5) return `Très bien noté (${f.rating.toFixed(1)})`;
-  return 'À découvrir';
+  // Pas encore de goût qui ressort : on dit ce qui est vraiment utile
+  const r = f.ratings?.find((x) => x.score >= 6);
+  if (r) return `Noté ${r.display} par ${SOURCE_NAMES[r.source.toLowerCase()] ?? r.source}`;
+  if (f.rating && f.rating >= 7) return `Bien noté (${f.rating.toFixed(1)})`;
+  if (f.flags?.premiere) return 'Inédit';
+  if (f.genres[0]) return f.genres[0];
+  return KINDS.find((k) => k.id === f.kind)?.label ?? 'À découvrir';
 }
 
 /**

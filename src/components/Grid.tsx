@@ -72,7 +72,7 @@ export function Grid({ profile, channels, films, at, now, kind, genre, height, o
                   const live = Date.parse(f.start) <= now && now < stopOf(f);
                   // Le visuel prend la hauteur de la case, au format 16/9, et se fond dans le fond de la case
                   const imgW = Math.min(Math.round((ROW - 8) * 1.6), Math.round(w * 0.55));
-                  const showImg = !!f.poster && w >= 110;
+                  const showImg = !!f.poster && w >= 150 && Date.parse(f.start) >= t0;
                   return (
                     <button
                       key={f.id}
@@ -86,13 +86,15 @@ export function Grid({ profile, channels, films, at, now, kind, genre, height, o
                           <img src={assetUrl(f.poster!)} alt="" loading="lazy" />
                         </span>
                       )}
-                      <span className="grid__text" style={showImg ? { paddingLeft: imgW - 18 } : undefined}>
-                        <span className="grid__title">{f.title}</span>
-                        <span className="grid__time">
-                          {live && <span className="live-dot" aria-hidden="true" />}
-                          {hhmm(f.start)}
+                      {w >= 56 && (
+                        <span className="grid__text" style={showImg ? { paddingLeft: imgW - 4 } : undefined}>
+                          <span className="grid__title">{f.title}</span>
+                          <span className="grid__time">
+                            {live && <span className="live-dot" aria-hidden="true" />}
+                            {hhmm(f.start)}
+                          </span>
                         </span>
-                      </span>
+                      )}
                     </button>
                   );
                 })}

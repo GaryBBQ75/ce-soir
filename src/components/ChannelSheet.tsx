@@ -32,7 +32,7 @@ export function ChannelSheet({ channel, films, now, profile, onOpen, onToggleFav
   }, []);
 
   return (
-    <Sheet label={`Programme de ${channel.name}`} title={channel.name} onClose={onClose}>
+    <Sheet label={`Programme de ${channel.name}`} onClose={onClose}>
       <div className="channel-head">
         <ChannelLogo channel={channel} fallback={channel.name} size="md" />
         <div className="stack-xs" style={{ flex: 1 }}>

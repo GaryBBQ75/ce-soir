@@ -368,3 +368,63 @@ button { font: inherit; color: inherit; }
 .channel__thumb-img { display: block; width: 100%; height: 100%; cursor: pointer; }
 .channel__clogo { position: absolute; left: 4px; bottom: 4px; padding: 0; border: 0; background: none; cursor: pointer; border-radius: 6px; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.45); }
 .grid__logo { border: 0; padding: 0; cursor: pointer; }
+
+/* ========== Repasse globale ========== */
+
+/* En-tête compact */
+.header__actions { display: flex; gap: 8px; }
+.icon-btn.is-on { color: var(--accent); border-color: var(--accent); background: rgba(245, 196, 81, 0.1); }
+.scope-note { align-self: flex-start; margin-top: -14px; border: 0; background: none; padding: 4px 0; color: var(--accent); font-size: 13px; cursor: pointer; }
+.screen { gap: 22px; }
+.title--xl { font-size: 36px; }
+.segmented { margin-top: -6px; }
+.segmented button { min-height: 40px; }
+.hint { padding: 10px 14px; }
+.hint p { font-size: 13px; }
+
+/* Cartes "À voir" : image paysage 16/9 (le format des visuels TV) */
+.card { flex: 0 0 84%; max-width: 400px; }
+.card__media { position: relative; display: block; aspect-ratio: 16 / 9; overflow: hidden; background: var(--surface-2); }
+.card__poster { position: absolute; inset: 0; width: 100%; height: 100% !important; object-fit: cover; }
+.card__media::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 40%; background: linear-gradient(to top, rgba(23, 23, 26, 0.85), transparent); pointer-events: none; }
+.card__badge { top: auto; bottom: 10px; left: 10px; z-index: 1; }
+.card__corner { z-index: 1; }
+.card__body { padding: 12px 14px 4px; }
+.card__title { font-size: 18px; height: auto; min-height: 2.4em; }
+.card__actions { padding: 8px 14px 14px; }
+
+/* Vignettes des rails : paysage aussi */
+.mini { width: 168px; }
+.mini__media { aspect-ratio: 16 / 9; border-radius: 12px; overflow: hidden; }
+.mini__poster { height: 100% !important; border-radius: 0; }
+
+/* Panneau plein écran */
+.sheet { position: relative; max-width: 640px; height: 100dvh; max-height: 100dvh; border-radius: 0; }
+@media (min-width: 640px) { .sheet { height: 94dvh; max-height: 94dvh; border-radius: 24px 24px 0 0; } }
+.sheet__top { display: none; }
+.sheet__grip { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 3; width: 40px; height: 5px; border-radius: 3px; background: rgba(255, 255, 255, 0.4); }
+.sheet__x { position: absolute; top: max(12px, env(safe-area-inset-top)); right: 12px; z-index: 3; width: 40px; height: 40px; border: 0; border-radius: 50%; background: rgba(0, 0, 0, 0.55); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; backdrop-filter: blur(8px); }
+.sheet__body { padding: max(64px, calc(env(safe-area-inset-top) + 56px)) 20px max(32px, env(safe-area-inset-bottom)); gap: 16px; outline: none; }
+.sheet__heading { margin: 0; font-family: 'Space Grotesk', sans-serif; font-size: 28px; letter-spacing: -0.02em; }
+
+/* Fiche : visuel en tête, au format de l'image */
+.hero { margin: calc(-1 * max(64px, calc(env(safe-area-inset-top) + 56px))) -20px 0; height: auto; aspect-ratio: 4 / 3; max-height: 62dvh; min-height: 280px; }
+.hero__img { object-position: center 25%; }
+.hero__shade { background: linear-gradient(to bottom, rgba(0, 0, 0, 0.45), rgba(0, 0, 0, 0) 28%, rgba(23, 23, 26, 0.55) 62%, var(--surface) 99%); }
+.hero__content { padding: max(14px, env(safe-area-inset-top)) 64px 12px 20px; }
+.hero__content .hero__title { margin-right: -44px; font-size: 32px; }
+.hero__top { align-items: center; gap: 10px; }
+
+/* Liste des chaînes : pas de débordement */
+.channel { gap: 12px; align-items: center; }
+.channel__body { overflow: hidden; }
+.channel__name { flex-wrap: wrap; }
+.channel .progress-line__label { font-size: 12px; }
+
+/* Grille : le titre reste lisible même si le programme a commencé avant */
+.grid__block { justify-content: flex-start; }
+.grid__text { position: sticky; left: 72px; max-width: 100%; }
+.grid__title { font-size: 13px; }
+.grid__img::after { background: linear-gradient(to right, rgba(23, 23, 26, 0) 20%, rgba(23, 23, 26, 0.85) 75%, var(--surface) 100%); }
+
+.grid__text { width: fit-content; max-width: min(100%, 260px); }
