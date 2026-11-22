@@ -67,8 +67,10 @@ export async function syncPush(p: Profile) {
     }
   }
   const secret = crypto.randomUUID();
-  const rec = await pb.collection('push_subs').create({ ...body, endpoint: json.endpoint, keys: json.keys, secret });
-  save({ id: rec.id, secret, endpoint: json.endpoint! });
+  // Identifiant choisi ici : le serveur ne renvoie pas les abonnements (lecture réservée au service de notifications)
+  const id = Array.from(crypto.getRandomValues(new Uint8Array(15)), (b) => 'abcdefghijklmnopqrstuvwxyz0123456789'[b % 36]).join('');
+  await pb.collection('push_subs').create({ ...body, id, endpoint: json.endpoint, keys: json.keys, secret }, { headers: { 'x-sub-secret': secret } });
+  save({ id, secret, endpoint: json.endpoint! });
 }
 
 /** Désabonne ce téléphone. */
