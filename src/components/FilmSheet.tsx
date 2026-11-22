@@ -1,15 +1,15 @@
-import { KINDS, type Channel, type Film, type Signal } from '../types';
-import { showKey, type Profile } from '../profile';
+import { KINDS, type Channel, type Film, type Signal, type Tonight } from '../types';
+import { channelReceived, showKey, type Profile } from '../profile';
 import { Sheet } from './Sheet';
 import { Progress } from './Progress';
 import { ChannelLogo } from './ChannelLogo';
 import { CsaBadge, Flags, Ratings } from './Badges';
-import { assetUrl, colorsFor, durationLabel, hhmm, isOn } from '../utils';
+import { assetUrl, colorsFor, dayLabel, durationLabel, hhmm, isOn, nextAirings } from '../utils';
 import { liveLink } from '../links';
 
 interface Props {
   film: Film;
-  films: Film[];
+  tonight: Tonight;
   channel?: Channel;
   now: number;
   profile: Profile;
@@ -32,14 +32,25 @@ const initials = (name: string) =>
     .toUpperCase();
 
 export function FilmSheet(p: Props) {
-  const { film, films, channel, now, profile } = p;
+  const { film, tonight, channel, now, profile } = p;
+  const channelsById = new Map(tonight.channels.map((c) => [c.id, c]));
   const key = showKey(film.title);
   const follow = profile.followed[key];
   const reminded = !!profile.reminders[film.id];
   const live = liveLink(film.channel);
   const onAir = isOn(film, now);
   const started = Date.parse(film.start) <= now;
-  const others = films.filter((f) => f.id !== film.id && showKey(f.title) === key && Date.parse(f.start) > now).slice(0, 4);
+  // Prochaines diffusions sur mes chaînes (aujourd'hui et les jours suivants)
+  const airings = nextAirings(key, showKey, tonight, now, film.id)
+    .filter((a) => {
+      const c = channelsById.get(a.channelId);
+      return c && channelReceived(profile, c.id, c.bouquet);
+    })
+    .slice(0, 4);
+  const until = tonight.laterUntil
+    ? new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', weekday: 'long', day: 'numeric', month: 'long' }).format(new Date(tonight.laterUntil))
+    : null;
+  const isFilm = film.kind === 'film';
   const hero = film.backdrop ?? film.poster;
   const { bg } = colorsFor(film.title);
   const kindLabel = KINDS.find((k) => k.id === film.kind)?.label ?? 'Programme';
@@ -154,29 +165,54 @@ export function FilmSheet(p: Props) {
         </dl>
       )}
 
-      {film.kind !== 'film' && film.kind !== 'autre' && (
-        <div className="follow">
+      {film.kind !== 'autre' && (
+        <div className="sheet__section follow">
+          <h3 className="eyebrow">{isFilm ? 'Quand ça repasse' : 'Prochaines diffusions'}</h3>
+          {airings.length > 0 ? (
+            <div className="airings">
+              {airings.map((a) => {
+                const c = channelsById.get(a.channelId);
+                const inner = (
+                  <>
+                    <ChannelLogo channel={c} fallback={c?.name ?? ''} size="xs" />
+                    <span className="airing__when">
+                      <strong>{dayLabel(a.start, now)}</strong> à {hhmm(a.start)}
+                    </span>
+                    <span className="muted airing__ch">{c?.name}</span>
+                  </>
+                );
+                return a.film ? (
+                  <button key={a.channelId + a.start} className="airing" onClick={() => p.onOpen(a.film!)}>{inner}</button>
+                ) : (
+                  <div key={a.channelId + a.start} className="airing">{inner}</div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="muted small">
+              {isFilm ? 'Pas d\'autre diffusion prévue' : 'Pas d\'autre diffusion prévue sur tes chaînes'}
+              {until ? ` d'ici ${until}.` : '.'}
+            </p>
+          )}
+
           <button className={`btn btn--wide ${follow ? 'btn--primary' : 'btn--ghost'}`} aria-pressed={!!follow} onClick={() => p.onFollow(!follow, follow?.notify ?? true)}>
-            {follow ? 'Émission suivie' : 'Suivre cette émission'}
+            {isFilm ? (follow ? 'Alerte activée' : 'M\'alerter quand il repasse') : follow ? 'Émission suivie' : 'Suivre cette émission'}
           </button>
+          <p className="muted small">
+            {isFilm
+              ? follow
+                ? 'Tu le verras dans « Tes suivis » dès qu\'une nouvelle diffusion est annoncée, et une notification le jour même.'
+                : 'Pratique si tu le rates ce soir : l\'app te prévient dès qu\'il est reprogrammé sur tes chaînes.'
+              : follow
+                ? 'Elle apparaît dans « Tes suivis » avec sa prochaine diffusion.'
+                : 'Tu verras sa prochaine diffusion en haut de l\'app, et un bandeau quand elle commence.'}
+          </p>
           {follow && (
             <label className="switch-row">
-              <span className="small">Me prévenir à chaque diffusion</span>
+              <span className="small">{isFilm ? 'Notification le jour de la diffusion' : 'Me prévenir à chaque diffusion'}</span>
               <input type="checkbox" className="switch" checked={follow.notify} onChange={() => p.onFollow(true, !follow.notify)} />
             </label>
           )}
-        </div>
-      )}
-
-      {others.length > 0 && (
-        <div className="sheet__section">
-          <h3 className="eyebrow">Autres diffusions aujourd'hui</h3>
-          {others.map((o) => (
-            <button key={o.id} className="other" onClick={() => p.onOpen(o)}>
-              <strong>{hhmm(o.start)}</strong> {o.channel}
-              {o.subTitle && <span className="muted"> · {o.subTitle}</span>}
-            </button>
-          ))}
         </div>
       )}
 

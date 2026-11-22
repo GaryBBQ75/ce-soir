@@ -216,6 +216,14 @@ function extras(body, credits, kind) {
   return out;
 }
 
+/** Même clé que showKey() côté app : titre sans accents ni ponctuation. */
+const showKey = (title) =>
+  title.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+
+/** Diffusions des jours suivants : titre -> [[chaîne, début], ...] (pour « quand ça repasse ») */
+const later = new Map();
+let laterUntil = 0;
+
 function parseSource(xml, source, win, channels, films, seenChannel) {
   for (const m of xml.matchAll(/<channel\b([^>]*)>([\s\S]*?)<\/channel>/g)) {
     const id = attr(m[1], 'id');
@@ -231,7 +239,8 @@ function parseSource(xml, source, win, channels, films, seenChannel) {
   }
   for (const m of xml.matchAll(/<programme\b([^>]*)>([\s\S]*?)<\/programme>/g)) {
     const start = parseTime(attr(m[1], 'start'));
-    if (!(start >= win.from && start < win.to)) continue;
+    const upcoming = start >= win.to && start < win.to + 8 * 86400_000;
+    if (!(start >= win.from && start < win.to) && !upcoming) continue;
     const body = m[2];
     const cats = tags(body, 'category');
     const kind = kindOf(cats);
@@ -242,6 +251,16 @@ function parseSource(xml, source, win, channels, films, seenChannel) {
     const ch = seenChannel.get(channelId);
     if (!ch.bouquet || ch.source !== source) continue; // chaîne écartée, ou déjà lue dans un flux précédent
     if (/adulte|charme|[ée]rotique|\bx\b/i.test(cats.join(' '))) continue;
+    if (upcoming) {
+      if (kind === 'autre' || kind === 'info') continue;
+      const k = showKey(tag(body, 'title') ?? '');
+      if (!k) continue;
+      const l = later.get(k) ?? { kind, list: [] };
+      l.list.push([channelId, new Date(start).toISOString()]);
+      later.set(k, l);
+      laterUntil = Math.max(laterUntil, start);
+      continue;
+    }
 
     const stop = parseTime(attr(m[1], 'stop'));
     const title = tag(body, 'title') ?? 'Sans titre';
@@ -539,6 +558,33 @@ const channelList = await downloadLogos(
     .map(([id, c]) => ({ id, name: decode(channels.get(id) ?? id), bouquet: c.bouquet, logo: logos.get(id) })),
 );
 
+// « Quand ça repasse » : les titres de ce soir, plus tous les films de la semaine (pour les alertes)
+const tonightKeys = new Set(list.map((f) => showKey(f.title)));
+const keptChannels = new Set(channelList.map((c) => c.id));
+const laterOut = {};
+for (const [k, { kind, list: l }] of later) {
+  if (!tonightKeys.has(k) && kind !== 'film') continue;
+  const airings = l
+    .filter(([c]) => keptChannels.has(c))
+    .sort((a, b) => a[1].localeCompare(b[1]))
+    // Épisodes à la suite sur la même chaîne : une seule diffusion
+    .filter((a, i, arr) => i === 0 || a[0] !== arr[i - 1][0] || Date.parse(a[1]) - Date.parse(arr[i - 1][1]) > 3 * 3600_000);
+  // Une série quotidienne : 4 prochaines diffusions suffisent
+  if (airings.length) laterOut[k] = airings.slice(0, 4);
+}
+console.log(`${Object.keys(laterOut).length} titres avec des diffusions à venir`);
+
 mkdirSync(dirname(OUT), { recursive: true });
-writeFileSync(OUT, JSON.stringify({ date: win.day, generatedAt: new Date().toISOString(), source: 'xmltv', channels: channelList, films: list }));
+writeFileSync(
+  OUT,
+  JSON.stringify({
+    date: win.day,
+    generatedAt: new Date().toISOString(),
+    source: 'xmltv',
+    channels: channelList,
+    films: list,
+    later: laterOut,
+    laterUntil: laterUntil ? new Date(laterUntil).toISOString() : undefined,
+  }),
+);
 console.log(`Écrit : ${OUT}`);

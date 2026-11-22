@@ -42,7 +42,7 @@ export function ChannelSheet({ channel, films, now, profile, onOpen, onToggleFav
           <span className="muted small">{list.length} programmes aujourd'hui</span>
         </div>
         <button className={`btn btn--sm ${fav ? 'btn--primary' : 'btn--ghost'}`} aria-pressed={fav} onClick={() => onToggleFavorite(channel.id)}>
-          {fav ? '★ Favorite' : '☆ Favorite'}
+          {fav ? '★ Dans mes favorites' : '☆ Ajouter aux favorites'}
         </button>
       </div>
       {live && (

@@ -97,6 +97,10 @@ export interface Tonight {
   /** Toutes les chaînes connues, même sans film ce soir (pour les réglages) */
   channels: Channel[];
   films: Film[];
+  /** Diffusions des jours suivants, par titre (clé showKey) : [chaîne, début] */
+  later?: Record<string, [string, string][]>;
+  /** Jusqu'où vont les programmes connus */
+  laterUntil?: string;
 }
 
 /** Ce que l'algo sait d'un film. */

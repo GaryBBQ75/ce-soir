@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { KINDS, kindLabel, type Film, type Kind, type Signal, type Tonight } from './types';
-import { applySignal, isFollowed, loadProfile, rank, saveProfile, showKey, type Profile } from './profile';
+import { applySignal, channelReceived, isFollowed, loadProfile, rank, saveProfile, showKey, type Profile } from './profile';
 import { checkReminders, downloadIcs, type Alert } from './notify';
 import { FilmSheet } from './components/FilmSheet';
 import { Settings } from './components/Settings';
@@ -11,7 +11,8 @@ import { ChannelLogo } from './components/ChannelLogo';
 import { KindFilter, matchesFilter } from './components/KindFilter';
 import { ChannelSheet } from './components/ChannelSheet';
 import { CsaBadge, RatingPill } from './components/Badges';
-import { assetUrl, durationLabel, hhmm, isOn, loadTonight, refTime, stopOf, todayLabel, type When } from './utils';
+import { assetUrl, dayLabel, defaultWhen, durationLabel, hhmm, isOn, loadTonight, nextAirings, refTime, stopOf, todayLabel, type When } from './utils';
+import { FavoritesSheet } from './components/FavoritesSheet';
 
 type Tab = 'pourtoi' | 'chaines';
 
@@ -31,7 +32,8 @@ export default function App() {
   const [tonight, setTonight] = useState<Tonight | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>('pourtoi');
-  const [when, setWhen] = useState<When>('now');
+  const [when, setWhen] = useState<When>(() => defaultWhen());
+  const [favSheet, setFavSheet] = useState(false);
   const [kind, setKind] = useState<Kind | 'all'>('all');
   const [genre, setGenre] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -53,7 +55,7 @@ export default function App() {
   }, []);
 
   // Bouton retour du téléphone : ferme la fiche ouverte au lieu de quitter l'app
-  const sheetOpen = !!openId || !!channelId || settings;
+  const sheetOpen = !!openId || !!channelId || settings || favSheet;
   const pushed = useRef(false);
   useEffect(() => {
     if (!sheetOpen) return;
@@ -68,6 +70,7 @@ export default function App() {
       setOpenId(null);
       setChannelId(null);
       setSettings(false);
+      setFavSheet(false);
     };
     window.addEventListener('popstate', onPop);
     return () => {
@@ -107,6 +110,25 @@ export default function App() {
   const followedLive = (tonight?.films ?? []).filter(
     (f) => isFollowed(profile, f) && stopOf(f) > now && Date.parse(f.start) - now < 15 * 60_000,
   );
+
+  // Tes suivis : prochaine diffusion connue de chaque émission suivie / film en alerte (hors en cours)
+  const upcomingFollowed = useMemo(() => {
+    if (!tonight) return [];
+    const live = new Set(followedLive.map((f) => showKey(f.title)));
+    const chans = new Map(tonight.channels.map((c) => [c.id, c]));
+    return Object.entries(profile.followed)
+      .filter(([k]) => !live.has(k))
+      .map(([k, v]) => {
+        const next = nextAirings(k, showKey, tonight, now).find((a) => {
+          const c = chans.get(a.channelId);
+          return c && channelReceived(profile, c.id, c.bouquet);
+        });
+        return next ? { key: k, title: v.title, film: !!v.film, next, channel: chans.get(next.channelId)! } : null;
+      })
+      .filter((x): x is NonNullable<typeof x> => !!x)
+      .sort((a, b) => a.next.start.localeCompare(b.next.start))
+      .slice(0, 4);
+  }, [tonight, profile, now, followedLive]);
 
   // Programmes du moment choisi (avant le filtre de catégorie, pour proposer les bonnes catégories)
   const inSlot = useMemo(() => {
@@ -163,10 +185,15 @@ export default function App() {
   const follow = (f: Film, on: boolean, notify: boolean) => {
     const followed = { ...profile.followed };
     const key = showKey(f.title);
-    if (on) followed[key] = { title: f.title, notify };
+    if (on) followed[key] = { title: f.title, notify, ...(f.kind === 'film' ? { film: true } : {}) };
     else delete followed[key];
     update({ ...(on && !profile.followed[key] ? applySignal(profile, f, 'like') : profile), followed });
-    if (on !== !!profile.followed[key]) flash(on ? `Tu suis ${f.title}` : `Tu ne suis plus ${f.title}`);
+    if (on !== !!profile.followed[key])
+      flash(
+        f.kind === 'film'
+          ? on ? 'Tu seras prévenu quand il repasse' : 'Alerte retirée'
+          : on ? `Tu suis ${f.title}` : `Tu ne suis plus ${f.title}`,
+      );
   };
 
   return (
@@ -216,17 +243,8 @@ export default function App() {
         <button
           className={`icon-btn ${profile.scope === 'favorites' ? 'is-on' : ''}`}
           aria-pressed={profile.scope === 'favorites'}
-          aria-label={profile.scope === 'favorites' ? 'Afficher toutes mes chaînes' : 'Afficher seulement mes chaînes favorites'}
-          onClick={() => {
-            if (profile.scope === 'favorites') return update({ ...profile, scope: 'all' });
-            if (favCount === 0) {
-              setTab('chaines');
-              flash('Touche l\'étoile d\'une chaîne pour l\'ajouter à tes favorites');
-              return;
-            }
-            update({ ...profile, scope: 'favorites' });
-            flash(`Seulement tes ${favCount} chaînes favorites`);
-          }}
+          aria-label="Mes chaînes favorites"
+          onClick={() => setFavSheet(true)}
         >
           <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill={profile.scope === 'favorites' ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
             <path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z" />
@@ -277,6 +295,28 @@ export default function App() {
       {tab === 'pourtoi' && tonight && (
         <>
           <KindFilter films={inSlot} kind={kind} genre={genre} onKind={setKind} onGenre={setGenre} />
+
+          {upcomingFollowed.length > 0 && (
+            <section className="followed-next">
+              <h2 className="eyebrow">Tes suivis</h2>
+              {upcomingFollowed.map((u) => (
+                <button
+                  key={u.key}
+                  className="followed-next__row"
+                  onClick={() => (u.next.film ? open(u.next.film) : flash(`${u.title} : ${dayLabel(u.next.start, now)} à ${hhmm(u.next.start)} sur ${u.channel.name}`))}
+                >
+                  <ChannelLogo channel={u.channel} fallback={u.channel.name} size="xs" />
+                  <span className="followed-next__text">
+                    <strong>{u.title}</strong>
+                    <span className="muted small">
+                      {u.film ? 'Repasse ' : ''}
+                      {dayLabel(u.next.start, now)} à {hhmm(u.next.start)} · {u.channel.name}
+                    </span>
+                  </span>
+                </button>
+              ))}
+            </section>
+          )}
 
           {ranked.length === 0 && (
             <div className="notice">
@@ -384,6 +424,10 @@ export default function App() {
         </button>
       </nav>
 
+      {favSheet && tonight && (
+        <FavoritesSheet profile={profile} channels={tonight.channels} onChange={update} onClose={() => setFavSheet(false)} />
+      )}
+
       {channelId && channelById.get(channelId) && (
         <ChannelSheet
           channel={channelById.get(channelId)!}
@@ -399,7 +443,7 @@ export default function App() {
       {openFilm && (
         <FilmSheet
           film={openFilm}
-          films={tonight?.films ?? []}
+          tonight={tonight!}
           now={now}
           profile={profile}
           onSignal={(s) => {

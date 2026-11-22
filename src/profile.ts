@@ -24,7 +24,7 @@ export interface Profile {
   reminders: Record<string, true>;
   signals: number;
   /** Émissions suivies (récurrentes), par titre normalisé */
-  followed: Record<string, { title: string; notify: boolean }>;
+  followed: Record<string, { title: string; notify: boolean; /** film : alerte quand il repasse */ film?: boolean }>;
   /** Ordre personnalisé des chaînes (ids) ; vide = ordre des numéros */
   channelOrder: string[];
   /** Prévenir combien de minutes avant le début */

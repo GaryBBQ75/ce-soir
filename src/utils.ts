@@ -90,3 +90,39 @@ export function minutesLabel(min: number) {
   const m = min % 60;
   return m ? `${h}h${String(m).padStart(2, '0')}` : `${h}h`;
 }
+
+/** Moment affiché par défaut selon l'heure : la soirée qui vient, ou ce qui passe. */
+export function defaultWhen(now = Date.now()): When {
+  const h = +new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Paris', hour: '2-digit', hourCycle: 'h23' }).format(now);
+  const m = +new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Paris', minute: '2-digit' }).format(now);
+  const t = h * 60 + m;
+  if (t >= 18 * 60 && t < 21 * 60 + 45) return 'prime'; // avant et au début de la 1re partie
+  if (t >= 21 * 60 + 45 && t < 23 * 60 + 15) return 'seconde'; // on se rapproche de la 2e partie
+  return 'now';
+}
+
+/** « ce soir », « demain », « mer. 26 nov. » */
+export function dayLabel(iso: string, now = Date.now()) {
+  const fmt = (d: number | string) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Paris' }).format(new Date(d));
+  const d = fmt(iso);
+  if (d === fmt(now)) return +new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Paris', hour: '2-digit', hourCycle: 'h23' }).format(new Date(iso)) >= 18 ? 'ce soir' : "aujourd'hui";
+  if (d === fmt(now + 86400_000)) return 'demain';
+  return new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', weekday: 'short', day: 'numeric', month: 'short' }).format(new Date(iso));
+}
+
+export interface Airing {
+  channelId: string;
+  start: string;
+  film?: Film;
+}
+
+/** Prochaines diffusions d'un titre : aujourd'hui (programmes complets) puis les jours suivants. */
+export function nextAirings(key: string, keyOf: (t: string) => string, tonight: Tonight, now: number, exceptId?: string): Airing[] {
+  const today: Airing[] = tonight.films
+    .filter((f) => f.id !== exceptId && keyOf(f.title) === key && Date.parse(f.start) > now)
+    .map((f) => ({ channelId: f.channelId, start: f.start, film: f }));
+  const later: Airing[] = (tonight.later?.[key] ?? [])
+    .filter(([, s]) => Date.parse(s) > now)
+    .map(([channelId, start]) => ({ channelId, start }));
+  return [...today, ...later];
+}

@@ -449,3 +449,27 @@ button { font: inherit; color: inherit; }
 .list-tools__link { color: var(--accent) !important; }
 .header__date { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; font-size: 13px; }
 .search--inline input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+
+/* Favorites : choix par logos */
+.fav-only { padding: 12px 14px; border-radius: 14px; background: var(--surface); }
+.fav-only.is-disabled { opacity: 0.6; }
+.fav-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.fav-tile { position: relative; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 6px 10px; border-radius: 14px; border: 1.5px solid var(--line); background: var(--surface); color: var(--text); cursor: pointer; }
+.fav-tile.is-on { border-color: var(--accent); background: rgba(245, 196, 81, 0.1); }
+.fav-tile__name { font-size: 12px; line-height: 1.2; text-align: center; color: var(--muted); overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.fav-tile.is-on .fav-tile__name { color: var(--text); }
+.fav-tile__star { position: absolute; top: 6px; right: 8px; font-size: 14px; color: var(--muted); }
+.fav-tile.is-on .fav-tile__star { color: var(--accent); }
+.channel__favmark { color: var(--accent); margin-right: 4px; }
+
+/* Quand ça repasse / tes suivis */
+.airings { display: flex; flex-direction: column; gap: 6px; }
+.airing { display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; border: 0; background: var(--surface); color: var(--text); border-radius: 12px; padding: 8px 12px; font-size: 14px; }
+button.airing { cursor: pointer; }
+.airing__when { flex: 1; min-width: 0; }
+.airing__when strong { text-transform: capitalize; }
+.airing__ch { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 40%; }
+.followed-next { display: flex; flex-direction: column; gap: 6px; }
+.followed-next__row { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; border: 0; background: var(--surface); color: var(--text); border-radius: 14px; padding: 10px 12px; cursor: pointer; }
+.followed-next__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.followed-next__text strong { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

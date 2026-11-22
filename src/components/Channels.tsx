@@ -99,13 +99,6 @@ export function Channels({ profile, channels, films, at, now, onOpen, onOpenChan
           .slice(0, 40)
       : [];
 
-  const toggleFavorite = (id: string) => {
-    const favorites = { ...profile.favorites };
-    if (favorites[id]) delete favorites[id];
-    else favorites[id] = true;
-    onChange({ ...profile, favorites });
-  };
-
   const move = (id: string, dir: -1 | 1) => {
     const order = ordered.map((c) => c.id);
     const i = order.indexOf(id);
@@ -192,6 +185,7 @@ export function Channels({ profile, channels, films, at, now, onOpen, onOpenChan
                       {current ? (
                         <button className="channel__body" onClick={() => onOpen(current)}>
                           <span className="channel__name">
+                            {fav && <span className="channel__favmark" aria-label="Favorite">★</span>}
                             {c.name} · {hhmm(current.start)}–{hhmm(new Date(stopOf(current)).toISOString())}
                             {current.csa && <CsaBadge csa={current.csa} size="sm" />}
                           </span>
@@ -212,18 +206,6 @@ export function Channels({ profile, channels, films, at, now, onOpen, onOpenChan
                           <span className="channel__name">{c.name}</span>
                           <span className="muted small">Pas de programme connu</span>
                         </span>
-                      )}
-                      {!reorder && (
-                        <button
-                          className={`channel__fav ${fav ? 'is-on' : ''}`}
-                          aria-label={fav ? `Retirer ${c.name} des favorites` : `Ajouter ${c.name} aux favorites`}
-                          aria-pressed={fav}
-                          onClick={() => toggleFavorite(c.id)}
-                        >
-                          <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill={fav ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
-                            <path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z" />
-                          </svg>
-                        </button>
                       )}
                     </li>
                   );
