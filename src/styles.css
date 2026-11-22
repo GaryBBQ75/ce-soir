@@ -473,3 +473,10 @@ button.airing { cursor: pointer; }
 .followed-next__row { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; border: 0; background: var(--surface); color: var(--text); border-radius: 14px; padding: 10px 12px; cursor: pointer; }
 .followed-next__text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
 .followed-next__text strong { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Compte */
+.account { display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 16px; background: var(--surface); margin-bottom: 18px; }
+.account__who { display: flex; align-items: center; gap: 10px; }
+.account__avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; background: var(--accent); color: #111; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; flex: none; }
+.btn--google { background: #fff; color: #1f1f1f; display: inline-flex; align-items: center; justify-content: center; gap: 10px; font-weight: 600; }
+.account .link { align-self: flex-start; }

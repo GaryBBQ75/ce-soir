@@ -13,6 +13,7 @@ import { ChannelSheet } from './components/ChannelSheet';
 import { CsaBadge, RatingPill } from './components/Badges';
 import { assetUrl, dayLabel, defaultWhen, durationLabel, hhmm, isOn, loadTonight, nextAirings, refTime, stopOf, todayLabel, type When } from './utils';
 import { FavoritesSheet } from './components/FavoritesSheet';
+import { currentAccount, pullProfile, schedulePush, signIn, signOut, type Account, type Provider } from './account';
 
 type Tab = 'pourtoi' | 'chaines';
 
@@ -90,7 +91,21 @@ export default function App() {
   const update = (p: Profile) => {
     setProfile(p);
     saveProfile(p);
+    schedulePush(p);
   };
+
+  // Compte : au démarrage, récupère les goûts enregistrés sur le compte
+  const [account, setAccount] = useState<Account | null>(() => currentAccount());
+  useEffect(() => {
+    if (!account) return;
+    pullProfile(profile)
+      .then((p) => {
+        setProfile(p);
+        saveProfile(p);
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [account?.id]);
 
   // Rappels dus : notification système + message dans l'app
   useEffect(() => {
@@ -482,7 +497,27 @@ export default function App() {
       {toast && <div className="toast" role="status">{toast}</div>}
 
       {settings && tonight && (
-        <Settings profile={profile} channels={tonight.channels ?? []} onChange={update} onClose={() => setSettings(false)} />
+        <Settings
+          profile={profile}
+          channels={tonight.channels ?? []}
+          onChange={update}
+          onClose={() => setSettings(false)}
+          account={account}
+          onSignIn={async (prov: Provider) => {
+            try {
+              const a = await signIn(prov);
+              setAccount(a);
+              flash('Connecté : tes goûts te suivent partout');
+            } catch {
+              flash('Connexion impossible pour le moment');
+            }
+          }}
+          onSignOut={() => {
+            signOut();
+            setAccount(null);
+            flash('Déconnecté');
+          }}
+        />
       )}
     </main>
   );

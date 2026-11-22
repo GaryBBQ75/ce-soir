@@ -1,4 +1,4 @@
-# Ce soir
+# Y'a quoi ce soir
 
 L'app qui te dit quoi regarder ce soir à la télé, sans chercher : films, séries, docs, divertissement, sport.
 Elle classe tous les programmes de la soirée selon tes goûts, et apprend à chaque réaction.

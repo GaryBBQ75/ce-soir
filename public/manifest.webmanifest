@@ -1,6 +1,6 @@
 {
-  "name": "Ce soir",
-  "short_name": "Ce soir",
+  "name": "Y'a quoi ce soir",
+  "short_name": "Y'a quoi",
   "description": "Quoi regarder ce soir à la télé, selon tes goûts.",
   "start_url": "./",
   "scope": "./",
