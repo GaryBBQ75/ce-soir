@@ -37,6 +37,9 @@ export default function App() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [settings, setSettings] = useState(false);
   const [channelId, setChannelId] = useState<string | null>(null);
+  const [chView, setChView] = useState<'list' | 'grid'>('list');
+  const [searching, setSearching] = useState(false);
+  const [query, setQuery] = useState('');
   const [now, setNow] = useState(() => Date.now());
   const [alerts, setAlerts] = useState<Alert[]>([]);
   const [toast, setToast] = useState<string | null>(null);
@@ -173,12 +176,43 @@ export default function App() {
           <img src={assetUrl((top[0].film.backdrop || top[0].film.poster)!)} alt="" />
         </div>
       )}
-      <header className="header">
-        <div>
-          <span className="muted small">{todayLabel()}</span>
-          <h1 className="title title--xl">{tab === 'pourtoi' ? 'Ce soir' : 'Chaînes'}</h1>
-        </div>
+      <header className={`header ${tab === 'chaines' ? 'header--compact' : ''}`}>
+        {tab === 'pourtoi' ? (
+          <div>
+            <span className="muted small">{todayLabel()}</span>
+            <h1 className="title title--xl">Ce soir</h1>
+          </div>
+        ) : searching ? (
+          <label className="search search--inline">
+            <span className="sr-only">Rechercher un programme</span>
+            <input autoFocus type="search" placeholder="Titre, acteur, équipe…" value={query} onChange={(e) => setQuery(e.target.value)} />
+            <button className="search__close" aria-label="Fermer la recherche" onClick={() => { setSearching(false); setQuery(''); }}>
+              <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>
+            </button>
+          </label>
+        ) : (
+          <h1 className="header__date">{todayLabel()}</h1>
+        )}
         <div className="header__actions">
+        {tab === 'chaines' && !searching && (
+          <>
+            <button className="icon-btn" aria-label="Rechercher un programme" onClick={() => setSearching(true)}>
+              <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></svg>
+            </button>
+            <button
+              className="icon-btn"
+              aria-label={chView === 'list' ? 'Passer en grille horaire' : 'Passer en liste'}
+              onClick={() => setChView(chView === 'list' ? 'grid' : 'list')}
+            >
+              {chView === 'list' ? (
+                <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 10h18M3 15h18M9 4v16" /></svg>
+              ) : (
+                <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M9 6h12M9 12h12M9 18h12" /><rect x="3" y="4.5" width="3" height="3" rx="0.5" /><rect x="3" y="10.5" width="3" height="3" rx="0.5" /><rect x="3" y="16.5" width="3" height="3" rx="0.5" /></svg>
+              )}
+            </button>
+          </>
+        )}
+        {!(tab === 'chaines' && searching) && <>
         <button
           className={`icon-btn ${profile.scope === 'favorites' ? 'is-on' : ''}`}
           aria-pressed={profile.scope === 'favorites'}
@@ -206,6 +240,7 @@ export default function App() {
             <circle cx="18" cy="18" r="2" />
           </svg>
         </button>
+        </>}
         </div>
       </header>
       {profile.scope === 'favorites' && (
@@ -214,14 +249,14 @@ export default function App() {
         </button>
       )}
 
-      <div className="segmented" role="group" aria-label="Moment">
+      {!(tab === 'chaines' && searching) && <div className="segmented" role="group" aria-label="Moment">
         {WHEN.map((w) => (
           <button key={w.id} aria-pressed={when === w.id} className={when === w.id ? 'is-on' : ''} onClick={() => setWhen(w.id)}>
             {w.id === 'now' && <span className="live-dot" aria-hidden="true" />}
             {w.label}
           </button>
         ))}
-      </div>
+      </div>}
 
       {followedLive.length > 0 && (
         <div className="live-banner" role="status">
@@ -325,7 +360,7 @@ export default function App() {
       )}
 
       {tab === 'chaines' && tonight && (
-        <Channels profile={profile} channels={tonight.channels} films={tonight.films} at={at} now={now} onOpen={open} onOpenChannel={setChannelId} onChange={update} />
+        <Channels profile={profile} channels={tonight.channels} films={tonight.films} at={at} now={now} onOpen={open} onOpenChannel={setChannelId} onChange={update} view={chView} query={searching ? query : ''} />
       )}
 
       {tonight?.source === 'sample' && <p className="muted small center">Soirée d'exemple, pas le vrai programme.</p>}

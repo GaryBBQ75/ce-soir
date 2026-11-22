@@ -19,9 +19,11 @@ interface Props {
   onOpen: (f: Film) => void;
   onOpenChannel: (channelId: string) => void;
   onChange: (p: Profile) => void;
+  view: View;
+  query: string;
 }
 
-type View = 'list' | 'grid';
+export type View = 'list' | 'grid';
 type Sort = 'mine' | 'pourtoi';
 
 const norm = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
@@ -35,12 +37,10 @@ export function orderedChannels(p: Profile, channels: Channel[]) {
 }
 
 /** Toutes mes chaînes d'un coup : liste (ce qui passe + ce qui suit) ou grille horaire. */
-export function Channels({ profile, channels, films, at, now, onOpen, onOpenChannel, onChange }: Props) {
-  const [view, setView] = useState<View>('list');
+export function Channels({ profile, channels, films, at, now, onOpen, onOpenChannel, onChange, view, query }: Props) {
   const [sort, setSort] = useState<Sort>('mine');
   const [kind, setKind] = useState<Kind | 'all'>('all');
   const [genre, setGenre] = useState<string | null>(null);
-  const [query, setQuery] = useState('');
   const [reorder, setReorder] = useState(false);
   // La grille occupe tout l'espace restant de l'écran : seule la grille défile
   const gridWrap = useRef<HTMLDivElement>(null);
@@ -130,17 +130,7 @@ export function Channels({ profile, channels, films, at, now, onOpen, onOpenChan
 
   return (
     <div className="stack">
-      {view === 'list' && (
-      <label className="search">
-        <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-          <circle cx="11" cy="11" r="7" />
-          <path d="M20 20l-3.5-3.5" />
-        </svg>
-        <span className="sr-only">Rechercher</span>
-        <input type="search" placeholder="Titre, acteur, équipe…" value={query} onChange={(e) => setQuery(e.target.value)} />
-      </label>
-      )}
-
+      {q.length > 0 && q.length < 2 && <p className="muted small">Tape au moins 2 lettres.</p>}
       {q.length >= 2 ? (
         <ul className="channels">
           {results.length === 0 && <li className="muted small">Rien trouvé aujourd'hui sur tes chaînes.</li>}
@@ -161,19 +151,6 @@ export function Channels({ profile, channels, films, at, now, onOpen, onOpenChan
         </ul>
       ) : (
         <>
-          <div className="toolbar">
-            <div className="segmented segmented--sm" role="group" aria-label="Affichage">
-              <button aria-pressed={view === 'list'} className={view === 'list' ? 'is-on' : ''} onClick={() => setView('list')}>Liste</button>
-              <button aria-pressed={view === 'grid'} className={view === 'grid' ? 'is-on' : ''} onClick={() => setView('grid')}>Grille (test)</button>
-            </div>
-            {view === 'list' && (
-              <div className="segmented segmented--sm" role="group" aria-label="Tri">
-                <button aria-pressed={sort === 'mine'} className={sort === 'mine' ? 'is-on' : ''} onClick={() => setSort('mine')}>Mon ordre</button>
-                <button aria-pressed={sort === 'pourtoi'} className={sort === 'pourtoi' ? 'is-on' : ''} onClick={() => setSort('pourtoi')}>Pour toi</button>
-              </div>
-            )}
-          </div>
-
           <KindFilter
             films={films.filter((f) => stopOf(f) > at && Date.parse(f.start) < at + 3 * 3600_000 && ordered.some((c) => c.id === f.channelId))}
             kind={kind}
@@ -188,11 +165,17 @@ export function Channels({ profile, channels, films, at, now, onOpen, onOpenChan
             </div>
           ) : (
             <>
-              {sort === 'mine' && (
-                <button className="link" onClick={() => setReorder((v) => !v)}>
-                  {reorder ? 'Terminer' : 'Réorganiser mes chaînes'}
-                </button>
-              )}
+              <div className="list-tools">
+                <span className="list-tools__sort" role="group" aria-label="Tri">
+                  <button aria-pressed={sort === 'mine'} className={sort === 'mine' ? 'is-on' : ''} onClick={() => setSort('mine')}>Mon ordre</button>
+                  <button aria-pressed={sort === 'pourtoi'} className={sort === 'pourtoi' ? 'is-on' : ''} onClick={() => { setSort('pourtoi'); setReorder(false); }}>Pour toi</button>
+                </span>
+                {sort === 'mine' && (
+                  <button className="list-tools__link" onClick={() => setReorder((v) => !v)}>
+                    {reorder ? 'Terminer' : 'Réorganiser'}
+                  </button>
+                )}
+              </div>
               <ul className="channels">
                 {rows.length === 0 && <li className="muted small">Aucune chaîne ne diffuse ce type de programme dans les 3 prochaines heures.</li>}
                 {rows.map(({ c, current, next }) => {
