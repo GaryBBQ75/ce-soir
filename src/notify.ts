@@ -5,9 +5,8 @@ import { hhmm } from './utils';
 /**
  * Rappels : notification système (si autorisée) + message dans l'app.
  *
- * Limite d'une app web sans serveur : les notifications partent tant que l'app est ouverte
- * ou en arrière-plan. Pour être prévenu app fermée, il faudra un petit serveur Web Push
- * (ou l'ajout à l'agenda, qui marche partout).
+ * App ouverte : notifications locales ci-dessous.
+ * App fermée : le service push/ (Coolify) envoie les mêmes alertes en Web Push (voir src/push.ts).
  */
 
 export const notificationsSupported = () => typeof window !== 'undefined' && 'Notification' in window;

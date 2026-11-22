@@ -1,0 +1,13 @@
+{
+  "name": "yaquoi-push",
+  "version": "1.0.0",
+  "main": "server.mjs",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "dependencies": {
+    "web-push": "^3.6.7"
+  },
+  "private": true,
+  "type": "module"
+}

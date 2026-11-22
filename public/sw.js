@@ -13,3 +13,22 @@ self.addEventListener('notificationclick', (event) => {
     }),
   );
 });
+
+// Notifications envoyées par le serveur (app fermée)
+self.addEventListener('push', (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { title: "Y'a quoi ce soir", body: event.data ? event.data.text() : '' };
+  }
+  event.waitUntil(
+    self.registration.showNotification(data.title || "Y'a quoi ce soir", {
+      body: data.body || '',
+      tag: data.tag,
+      icon: 'icon-192.png',
+      badge: 'icon-192.png',
+      data: { url: data.url },
+    }),
+  );
+});

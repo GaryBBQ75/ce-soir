@@ -84,3 +84,11 @@ export async function availableProviders(): Promise<Provider[]> {
     return [];
   }
 }
+
+/** Supprime le compte et tout ce qui y est enregistré. */
+export async function deleteAccount() {
+  const acc = currentAccount();
+  if (!acc) return;
+  await pb.collection('users').delete(acc.id);
+  pb.authStore.clear();
+}

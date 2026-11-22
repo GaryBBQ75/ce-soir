@@ -13,10 +13,12 @@ interface Props {
   account: Account | null;
   onSignIn: (p: Provider) => void;
   onSignOut: () => void;
+  onDeleteAccount: () => void;
 }
 
-export function Settings({ profile, channels, onChange, onClose, account, onSignIn, onSignOut }: Props) {
+export function Settings({ profile, channels, onChange, onClose, account, onSignIn, onSignOut, onDeleteAccount }: Props) {
   const [resetArmed, setResetArmed] = useState(false);
+  const [deleteArmed, setDeleteArmed] = useState(false);
   const [denied, setDenied] = useState(false);
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const tastes = topTraits(profile, 8);
@@ -122,7 +124,7 @@ export function Settings({ profile, channels, onChange, onClose, account, onSign
             <span className="stack-xs">
               <span>Notifications sur cet appareil</span>
               <span className="muted small">
-                {notificationsSupported() ? 'Quand l\'app est ouverte ou en arrière-plan' : 'Non disponible dans ce navigateur'}
+                {notificationsSupported() ? 'Même app fermée (une fois l\'app installée sur ton écran d\'accueil)' : 'Non disponible dans ce navigateur'}
               </span>
             </span>
             <input
@@ -208,7 +210,21 @@ export function Settings({ profile, channels, onChange, onClose, account, onSign
             {resetArmed ? 'Confirmer : effacer mes goûts ?' : 'Effacer mes goûts'}
           </button>
         </section>
+        {account && (
+          <button
+            className="link link--danger"
+            onClick={() => {
+              if (!deleteArmed) return setDeleteArmed(true);
+              onDeleteAccount();
+              setDeleteArmed(false);
+            }}
+          >
+            {deleteArmed ? 'Confirmer : supprimer mon compte et mes données ?' : 'Supprimer mon compte'}
+          </button>
+        )}
         <p className="muted small center">
+          <a href={`${import.meta.env.BASE_URL}confidentialite.html`} target="_blank" rel="noreferrer">Confidentialité</a>
+          {' · '}
           Programmes : xmltvfr.fr · Films et séries : TMDB (cette app n'est ni approuvée ni certifiée par TMDB)
         </p>
     </Sheet>

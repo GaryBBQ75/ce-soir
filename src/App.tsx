@@ -13,7 +13,8 @@ import { ChannelSheet } from './components/ChannelSheet';
 import { CsaBadge, RatingPill } from './components/Badges';
 import { assetUrl, dayLabel, defaultWhen, durationLabel, hhmm, isOn, loadTonight, nextAirings, refTime, stopOf, todayLabel, type When } from './utils';
 import { FavoritesSheet } from './components/FavoritesSheet';
-import { currentAccount, pullProfile, schedulePush, signIn, signOut, type Account, type Provider } from './account';
+import { schedulePushSync } from './push';
+import { currentAccount, deleteAccount, pullProfile, schedulePush, signIn, signOut, type Account, type Provider } from './account';
 
 type Tab = 'pourtoi' | 'chaines';
 
@@ -92,7 +93,14 @@ export default function App() {
     setProfile(p);
     saveProfile(p);
     schedulePush(p);
+    schedulePushSync(p);
   };
+
+  // Notifications serveur : met à jour l'abonnement au lancement
+  useEffect(() => {
+    schedulePushSync(profile);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Compte : au démarrage, récupère les goûts enregistrés sur le compte
   const [account, setAccount] = useState<Account | null>(() => currentAccount());
@@ -516,6 +524,15 @@ export default function App() {
             signOut();
             setAccount(null);
             flash('Déconnecté');
+          }}
+          onDeleteAccount={async () => {
+            try {
+              await deleteAccount();
+              setAccount(null);
+              flash('Compte supprimé');
+            } catch {
+              flash('Suppression impossible pour le moment');
+            }
           }}
         />
       )}
