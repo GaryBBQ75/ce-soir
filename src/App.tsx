@@ -14,6 +14,8 @@ import { CsaBadge, RatingPill } from './components/Badges';
 import { assetUrl, dayLabel, defaultWhen, durationLabel, hhmm, isOn, loadTonight, nextAirings, refTime, stopOf, todayLabel, type When } from './utils';
 import { FavoritesSheet } from './components/FavoritesSheet';
 import { schedulePushSync } from './push';
+import { popularTonight, shareLike } from './social';
+import { DuoSheet } from './components/DuoSheet';
 import { currentAccount, deleteAccount, pullProfile, schedulePush, signIn, signOut, type Account, type Provider } from './account';
 
 type Tab = 'pourtoi' | 'chaines';
@@ -40,6 +42,12 @@ export default function App() {
   const [genre, setGenre] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [settings, setSettings] = useState(false);
+  // Ce soir à deux : ouvert depuis l'app, ou via un lien ?duo=…
+  const [duo, setDuo] = useState<{ room: string | null } | null>(() => {
+    const id = new URLSearchParams(location.search).get('duo');
+    return id ? { room: id } : null;
+  });
+  const [popular, setPopular] = useState<Record<string, number>>({});
   const [channelId, setChannelId] = useState<string | null>(null);
   const [chView, setChView] = useState<'list' | 'grid'>('list');
   const [searching, setSearching] = useState(false);
@@ -57,7 +65,7 @@ export default function App() {
   }, []);
 
   // Bouton retour du téléphone : ferme la fiche ouverte au lieu de quitter l'app
-  const sheetOpen = !!openId || !!channelId || settings || favSheet;
+  const sheetOpen = !!openId || !!channelId || settings || favSheet || !!duo;
   const pushed = useRef(false);
   useEffect(() => {
     if (!sheetOpen) return;
@@ -73,6 +81,7 @@ export default function App() {
       setChannelId(null);
       setSettings(false);
       setFavSheet(false);
+      setDuo(null);
     };
     window.addEventListener('popstate', onPop);
     return () => {
@@ -166,6 +175,24 @@ export default function App() {
   );
 
   const ranked = useMemo(() => rank(profile, candidates, seed), [profile, candidates, seed]);
+
+  // Populaire ce soir : J'aime de tous les utilisateurs (anonymes), rafraîchis toutes les 5 min
+  useEffect(() => {
+    if (!tonight) return;
+    const load = () => popularTonight(tonight.date).then(setPopular);
+    load();
+    const t = setInterval(load, 5 * 60_000);
+    return () => clearInterval(t);
+  }, [tonight]);
+  const popularNow = useMemo(
+    () =>
+      inSlot
+        .filter((f) => (popular[showKey(f.title)] ?? 0) >= 2 && channelReceived(profile, f.channelId, f.bouquet))
+        .sort((a, b) => popular[showKey(b.title)] - popular[showKey(a.title)])
+        .filter((f, i, arr) => arr.findIndex((x) => showKey(x.title) === showKey(f.title)) === i)
+        .slice(0, 8),
+    [inSlot, popular, profile],
+  );
   const top = ranked.slice(0, 5);
   const rest = ranked.slice(5);
   const restKinds = KINDS.filter((k) => rest.some((r) => r.film.kind === k.id));
@@ -175,6 +202,7 @@ export default function App() {
   const favCount = Object.keys(profile.favorites).length;
 
   const signal = (f: Film, s: Signal) => {
+    if (s === 'like' && tonight) void shareLike(showKey(f.title), tonight.date);
     let p = { ...applySignal(profile, f, s), hintDismissed: true };
     if (s === 'remind') {
       const reminders = { ...p.reminders };
@@ -394,6 +422,34 @@ export default function App() {
             </section>
           )}
 
+          <button className="duo-cta" onClick={() => setDuo({ room: null })}>
+            <span className="duo-cta__icon" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="9" cy="8" r="3.2" /><circle cx="16.5" cy="9" r="2.6" /><path d="M3.5 19c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5M14.5 14.3c.6-.2 1.3-.3 2-.3 2.3 0 4 1.5 4.5 4.3" /></svg>
+            </span>
+            <span className="duo-cta__text">
+              <strong>Vous êtes deux ?</strong>
+              <span className="muted small">Chacun dit oui ou non, l'app trouve ce qui vous plaît à tous les deux.</span>
+            </span>
+          </button>
+
+          {popularNow.length > 0 && (
+            <section className="stack-sm">
+              <h2 className="eyebrow">Populaire ce soir</h2>
+              <div className="rail">
+                {popularNow.map((film) => (
+                  <button key={film.id} className="mini" onClick={() => open(film)}>
+                    <span className="mini__media">
+                      <Poster title={film.title} poster={film.poster} className="mini__poster" />
+                      <ChannelLogo channel={channelById.get(film.channelId)} fallback={film.channel} size="xs" className="mini__clogo" />
+                    </span>
+                    <span className="mini__title">{film.title}</span>
+                    <span className="muted small">♥ {popular[showKey(film.title)]} · {hhmm(film.start)}</span>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
           {rest.length > 0 && (
             <section className="stack">
               <h2 className="eyebrow">Aussi à ce moment · {rest.length}</h2>
@@ -447,6 +503,24 @@ export default function App() {
           Chaînes
         </button>
       </nav>
+
+      {duo && tonight && (
+        <DuoSheet
+          roomId={duo.room}
+          day={tonight.date}
+          suggestions={rank(profile, (tonight.films ?? []).filter(suggestable).filter((f) => stopOf(f) > now && (f.part === 'prime' || f.part === 'seconde' || isOn(f, now))), 0).map((r) => r.film)}
+          films={tonight.films}
+          channels={tonight.channels}
+          onOpen={(f) => {
+            setDuo(null);
+            open(f);
+          }}
+          onClose={() => {
+            setDuo(null);
+            if (location.search.includes('duo=')) history.replaceState(null, '', location.pathname);
+          }}
+        />
+      )}
 
       {favSheet && tonight && (
         <FavoritesSheet profile={profile} channels={tonight.channels} onChange={update} onClose={() => setFavSheet(false)} />
