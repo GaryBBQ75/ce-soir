@@ -18,7 +18,7 @@ const LIVE: [RegExp, string, string][] = [
   [/^6ter$/, 'https://www.m6.fr/6ter/direct', 'M6+'],
   [/^gulli$/, 'https://www.m6.fr/gulli/direct', 'M6+'],
   [/^arte$/, 'https://www.arte.tv/fr/direct/', 'arte.tv'],
-  [/^rmc (story|decouverte|life)$|^bfm ?tv$/, 'https://www.rmcbfmplay.com/', 'RMC BFM Play'],
+  [/^rmc (story|decouverte|life)$|^bfm ?tv$/, 'https://www.rmcplus.fr/', 'RMC+'],
   [/^canal|^cine ?\+|^planete|^polar|^comedie ?\+|^seasons|^infosport/, 'https://www.canalplus.com/live/', 'myCANAL'],
 ];
 
